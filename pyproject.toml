@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lattimex"
+version = "1.0.0"
+description = "Ruteo de vehículos con acomodo 3D de carga, ejecutado en su propia computadora"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "LATTIMEX", email = "contacto@lattimex.com" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "networkx>=3.0", "pyproj>=3.5"]
+keywords = ["vehicle routing", "CVRP", "3L-CVRP", "ALNS", "3D packing", "logistics"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C++",
+  "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+build = ["ziglang"]
+pbf = ["osmium"]
+
+[project.urls]
+Homepage = "https://lattimex.com"
+Planner = "https://lattimex.com/planner"
+Source = "https://github.com/Erick-MF28/lattimex"
+
+[project.scripts]
+lattimex = "lattimex.__main__:main"
+
+[tool.setuptools]
+packages = ["lattimex", "lattimex.engine"]

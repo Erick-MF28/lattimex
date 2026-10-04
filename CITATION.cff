@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "Si usa LATTIMEX en un trabajo académico, cítelo así."
+title: "LATTIMEX: motor de ruteo de vehículos con acomodo 3D de carga"
+version: 1.0.0
+date-released: 2026-09-30
+license: MIT
+repository-code: "https://github.com/Erick-MF28/lattimex"
+url: "https://lattimex.com"
+authors:
+  - name: "LATTIMEX"
+    city: "Querétaro"
+    country: "MX"
+keywords:
+  - vehicle routing
+  - CVRP
+  - 3L-CVRP
+  - adaptive large neighborhood search
+  - 3D bin packing
+references:
+  - type: report
+    title: "SENDA: ruteo de vehículos con una sola trayectoria de búsqueda, explicado y medido con honestidad. Guía educativa del motor LATTIMEX"
+    authors:
+      - name: "LATTIMEX"
+    year: 2026
+    url: "https://github.com/Erick-MF28/lattimex/blob/main/paper/guia_senda.pdf"
+    license: CC-BY-4.0

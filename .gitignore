@@ -1,0 +1,25 @@
+# Datos del usuario: mapas, base local y resultados nunca se versionan
+data/
+# Binarios compilados en cada computadora
+lattimex/_native/*.dll
+lattimex/_native/*.so
+lattimex/_native/*.dylib
+lattimex/_native/*.pdb
+lattimex/_native/*.lib
+__pycache__/
+*.pyc
+.venv/
+dist/
+
+# Compilación del paper (LaTeX)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.bbl
+paper/*.blg
+paper/**/*.log
+
+# Construcción de la app de Windows
+.venv-build/
+build/

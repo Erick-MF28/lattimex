@@ -1,0 +1,29 @@
+name: pruebas
+
+on: [push, pull_request]
+
+jobs:
+  pruebas:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dependencias
+        run: python -m pip install -r requirements.txt
+      - name: Compilador portátil (Windows)
+        if: runner.os == 'Windows'
+        run: python -m pip install ziglang
+      - name: Compilar el motor
+        run: python -m lattimex build
+      - name: Pruebas del motor
+        run: python -m unittest discover -s tests/engine
+      - name: Pruebas de llamada del servidor local
+        run: python -m unittest tests.test_local_api -v
+      - name: Huella determinista
+        run: python -m lattimex probe

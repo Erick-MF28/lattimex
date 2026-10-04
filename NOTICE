@@ -1,0 +1,72 @@
+LATTIMEX — motor de ruteo con acomodo 3D de carga
+Copyright (c) 2026 Erick Alan Martínez Fuentes (LATTIMEX)
+
+Este repositorio (motor, servidor local, generador de mapas, pruebas y documentación)
+se distribuye bajo la licencia MIT (ver LICENSE), con una excepción:
+  * La guía educativa de la carpeta paper/ (texto, figuras y datos de las gráficas) se distribuye
+    bajo Creative Commons Atribución 4.0 Internacional (CC BY 4.0):
+    https://creativecommons.org/licenses/by/4.0/
+
+Código incorporado de terceros:
+  * Mulberry32, de Tommy Ettinger, adaptado en native/pack3d.cpp y
+    lattimex/engine/loading3d.py. Original dedicado al dominio público bajo CC0-1.0:
+    https://creativecommons.org/publicdomain/zero/1.0/
+    https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
+    Ver THIRD_PARTY_LICENSES.md para las dependencias y sus condiciones.
+
+No forman parte de este repositorio ni de la licencia MIT:
+  * El LATTIMEX Planner (interfaz en https://lattimex.com/planner). Uso gratuito; prohibida su
+    redistribución o explotación comercial por terceros. Ver
+    https://lattimex.com/planner/licencia.html
+  * La marca "LATTIMEX" y su logotipo. La licencia MIT permite usar y modificar el código, pero
+    no autoriza a presentar productos o servicios con el nombre o el logotipo de LATTIMEX.
+    El logotipo y el ícono incluidos en lattimex/assets/ (para la ventana de inicio y el
+    instalador de Windows) son parte de la marca y no están cubiertos por la licencia MIT.
+
+Datos de terceros:
+  * Los mapas que construye `python -m lattimex map` se derivan de OpenStreetMap:
+    © colaboradores de OpenStreetMap, disponible bajo la Open Database License (ODbL 1.0).
+    El repositorio no incluye mapas; cada usuario los genera en su computadora.
+
+Ideas académicas:
+  * El motor implementa ideas publicadas en la literatura de ruteo (ver docs/ACADEMIC_NOTES.md).
+    La implementación es propia: no incorpora código de HGS-CVRP, FILO2 ni de otros solvers
+    (ver AUTHORSHIP.md).
+
+----------------------------------------------------------------------------------------------
+English
+
+LATTIMEX — routing engine with 3D load placement
+Copyright (c) 2026 Erick Alan Martínez Fuentes (LATTIMEX)
+
+This repository (engine, local server, map builder, tests and documentation) is distributed
+under the MIT license (see LICENSE), with one exception:
+  * The educational guide in the paper/ folder (text, figures and chart data) is distributed
+    under Creative Commons Attribution 4.0 International (CC BY 4.0):
+    https://creativecommons.org/licenses/by/4.0/
+
+Incorporated third-party code:
+  * Mulberry32, by Tommy Ettinger, adapted in native/pack3d.cpp and
+    lattimex/engine/loading3d.py. Original dedicated to the public domain under CC0-1.0:
+    https://creativecommons.org/publicdomain/zero/1.0/
+    https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
+    See THIRD_PARTY_LICENSES.md for dependencies and their terms.
+
+Not part of this repository or of the MIT license:
+  * The LATTIMEX Planner (interface at https://lattimex.com/planner). Free to use; redistribution
+    or commercial exploitation by third parties is prohibited. See
+    https://lattimex.com/planner/licencia.html
+  * The "LATTIMEX" name and logo. The MIT license allows using and modifying the code, but does
+    not authorize presenting products or services under the LATTIMEX name or logo.
+    The logo and icon included in lattimex/assets/ (for the start window and the Windows
+    installer) are part of the trademark and are not covered by the MIT license.
+
+Third-party data:
+  * The maps built by `python -m lattimex map` are derived from OpenStreetMap:
+    © OpenStreetMap contributors, available under the Open Database License (ODbL 1.0).
+    The repository includes no maps; each user generates them on their own computer.
+
+Academic ideas:
+  * The engine implements ideas published in the routing literature (see docs/ACADEMIC_NOTES.md).
+    The implementation is original: it incorporates no code from HGS-CVRP, FILO2 or other solvers
+    (see AUTHORSHIP.md).
