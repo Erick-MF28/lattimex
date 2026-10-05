@@ -1414,12 +1414,15 @@ git clone https://github.com/Erick-MF28/lattimex.git
 cd lattimex
 pip install -r requirements.txt
 python -m lattimex build        # compiles the core and the 3D packer
-python -m lattimex probe        # deterministic fingerprint: 6457b2dd44660773
+python -m lattimex probe        # deterministic fingerprint (see below)
 python -m unittest discover -s tests/engine
 \end{verbatim}
-The deterministic fingerprint summarizes a fixed run of 3\,000 iterations. If your build gives the
-same fingerprint, your binary computes exactly the same as the one described here, even if the binary
-file is not identical byte for byte.
+The deterministic fingerprint summarizes a fixed run of 3\,000 iterations. It depends on the C++
+standard library, because \tsl{std::shuffle} and the random distributions are implemented
+differently in each: \tsl{6457b2dd44660773} with zig/libc++ (the Windows installer) and
+\tsl{285bf1758e5dd6a1} with g++/libstdc++ (Linux and MinGW). If your build gives the fingerprint of
+its library, your binary computes exactly the same as the published one, even if the file is not
+identical byte for byte.
 
 \paragraph{2. See it work on real streets.} The engine builds its own map from OpenStreetMap and
 serves it to the graphical interface, the LATTIMEX Planner, which opens in the browser:

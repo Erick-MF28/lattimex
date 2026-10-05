@@ -88,8 +88,9 @@ def cmd_doctor(_):
 def cmd_probe(args):
     """Huella determinista: instancia entera fija y presupuesto por iteraciones.
 
-    Dos binarios compilados del mismo fuente deben dar la misma huella aunque su
-    hash de archivo difiera (compiladores distintos)."""
+    Dos binarios del mismo fuente y la misma biblioteca estándar de C++ dan la misma huella aunque
+    su hash de archivo difiera: 6457b2dd44660773 con zig/libc++ y 285bf1758e5dd6a1 con g++/libstdc++
+    (std::shuffle y las distribuciones aleatorias difieren entre bibliotecas)."""
     os.environ["LATTIMEX_ITER_BUDGET"] = str(args.iters)
     os.environ["LATTIMEX_THREADS"] = "1"
     native.configure()

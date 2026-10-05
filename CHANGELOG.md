@@ -1,5 +1,13 @@
 # Cambios
 
+## Sin publicar
+
+- Compilación con MinGW g++ en Windows: el runtime de GCC queda dentro de las DLL
+  (`-static-libgcc -static-libstdc++`). Antes las DLL dependían de `libstdc++-6.dll`, que Python
+  3.8+ no busca en el PATH, y el motor no cargaba.
+- Documentadas las dos huellas deterministas según la biblioteca estándar de C++ (zig/libc++ y
+  g++/libstdc++); el CI publica la suya como anotación.
+
 *[English version](docs/en/CHANGELOG.md)*
 
 ## 1.0.0 — 30 de septiembre de 2026
@@ -8,7 +16,7 @@ Primera versión pública.
 
 - Motor `lattimex-engine-1.6.0`, el mismo que corre en producción: ruteo SENDA en C++ con portafolio
   en paralelo, capacidad efectiva, empacador 3D nativo, mediación con flota fija y plan de descarga
-  por puertas. Huella determinista: `6457b2dd44660773` (ver [AUTHORSHIP.md](AUTHORSHIP.md)).
+  por puertas. Huella determinista: `6457b2dd44660773` con zig/libc++ (ver [AUTHORSHIP.md](AUTHORSHIP.md)).
 - Servidor local (`python -m lattimex serve`) para el LATTIMEX Planner: escucha solo en 127.0.0.1,
   acepta únicamente el origen del Planner, valida Host y usa un token de sesión por arranque.
   - Un solo servidor por puerto (en Windows, `SO_EXCLUSIVEADDRUSE`): un segundo servidor falla con

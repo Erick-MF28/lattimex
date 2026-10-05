@@ -1,5 +1,13 @@
 # Changes
 
+## Unreleased
+
+- Build with MinGW g++ on Windows: the GCC runtime is linked into the DLLs
+  (`-static-libgcc -static-libstdc++`). Before, the DLLs depended on `libstdc++-6.dll`, which Python
+  3.8+ does not look up in the PATH, and the engine did not load.
+- Documented the two deterministic fingerprints by C++ standard library (zig/libc++ and
+  g++/libstdc++); CI publishes its own as an annotation.
+
 *Translation of [CHANGELOG.md](../../CHANGELOG.md).*
 
 ## 1.0.0 — September 30, 2026
@@ -8,7 +16,7 @@ First public release.
 
 - Engine `lattimex-engine-1.6.0`, the same one running in production: SENDA routing in C++ with a
   parallel portfolio, effective capacity, native 3D packer, fixed-fleet mediation and unloading plan
-  by door. Deterministic fingerprint: `6457b2dd44660773` (see [AUTHORSHIP.md](AUTHORSHIP.md)).
+  by door. Deterministic fingerprint: `6457b2dd44660773` with zig/libc++ (see [AUTHORSHIP.md](AUTHORSHIP.md)).
 - Local server (`python -m lattimex serve`) for the LATTIMEX Planner: listens on 127.0.0.1 only,
   accepts only the Planner's origin, validates Host and uses a session token per start.
   - A single server per port (on Windows, `SO_EXCLUSIVEADDRUSE`): a second server fails with a clear

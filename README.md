@@ -48,8 +48,10 @@ python -m lattimex serve --data D:\operaciones\cliente_a
 ```
 
 `python -m lattimex doctor` revisa la instalación y `python -m lattimex probe` imprime la huella
-determinista del motor (`6457b2dd44660773`): si su compilación da la misma huella, calcula
-exactamente lo mismo que el motor publicado.
+determinista del motor. Depende de la biblioteca estándar de C++ con la que se compiló:
+`6457b2dd44660773` con zig/libc++ (el instalador de Windows y `pip install ziglang`) y
+`285bf1758e5dd6a1` con g++/libstdc++ (Linux y MinGW). Si su compilación da la huella de su
+biblioteca, calcula exactamente lo mismo que el motor publicado.
 
 **¿Prefiere no usar la terminal?** `python -m lattimex app` abre una ventana que arranca el motor,
 prepara el mapa de su ciudad y abre el Planner. La misma ventana se empaqueta como aplicación de

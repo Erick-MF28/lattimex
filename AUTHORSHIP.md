@@ -47,9 +47,13 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 | Versión del motor | lattimex-engine-1.6.0 (en producción desde el 4/09/2026) |
 | SHA-256 de `native/senda_core.cpp` (finales de línea LF) | `d63db4bc643628e196e24219a483ee99ef420d0596e1c927f1cdf9892e77fa01` |
 | SHA-256 de `native/pack3d.cpp` (finales de línea LF) | `915f13dd6fbb1d1c3b1c8bb3b3f759b6b302070ff27c83d5cb87dd5443c56b6c` |
-| Huella determinista (`python -m lattimex probe`) | `6457b2dd44660773` (4 rutas, 9 151 m, 3 000 iteraciones) |
+| Huella determinista con zig/libc++ (`python -m lattimex probe`) | `6457b2dd44660773` (4 rutas, 9 151 m, 3 000 iteraciones) |
+| Huella determinista con g++/libstdc++ (Linux, MinGW) | `285bf1758e5dd6a1` (4 rutas, 8 857 m, 3 000 iteraciones) |
 
-La huella determinista no depende del compilador: dos binarios compilados del mismo fuente deben
-dar la misma huella aunque el hash del archivo binario sea distinto. El manifiesto SHA-256 de los
+La huella no depende de la optimización (`-O0`, `-O2` y `-O3` dan la misma) ni del hash del archivo
+binario, pero sí de la biblioteca estándar de C++: `std::shuffle` y las distribuciones aleatorias
+están implementadas de forma distinta en libc++ (zig) y en libstdc++ (g++), así que la misma semilla
+recorre otra trayectoria. Las dos son soluciones válidas y cada compilación es determinista. El
+motor en producción se compila con g++ en Linux; el instalador de Windows, con zig. El manifiesto SHA-256 de los
 archivos de esta copia se conserva en el expediente privado de auditoría y no se distribuye en
 este repositorio.

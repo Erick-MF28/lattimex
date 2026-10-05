@@ -49,8 +49,10 @@ python -m lattimex serve --data D:\operations\customer_a
 ```
 
 `python -m lattimex doctor` checks the installation and `python -m lattimex probe` prints the
-engine's deterministic fingerprint (`6457b2dd44660773`): if your build gives the same fingerprint, it
-computes exactly what the published engine computes.
+engine's deterministic fingerprint. It depends on the C++ standard library used to build it:
+`6457b2dd44660773` with zig/libc++ (the Windows installer and `pip install ziglang`) and
+`285bf1758e5dd6a1` with g++/libstdc++ (Linux and MinGW). If your build gives the fingerprint of its
+library, it computes exactly what the published engine computes.
 
 **Rather not use the terminal?** `python -m lattimex app` opens a window that starts the engine,
 prepares your city map and opens the Planner. The same window is packaged as a Windows application

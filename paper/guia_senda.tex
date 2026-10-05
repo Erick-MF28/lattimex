@@ -1436,11 +1436,14 @@ git clone https://github.com/Erick-MF28/lattimex.git
 cd lattimex
 pip install -r requirements.txt
 python -m lattimex build        # compila el núcleo y el empacador 3D
-python -m lattimex probe        # huella determinista: 6457b2dd44660773
+python -m lattimex probe        # huella determinista (ver abajo)
 python -m unittest discover -s tests/engine
 \end{verbatim}
-La huella determinista resume una corrida fija de 3\,000 iteraciones. Si su compilación da la misma
-huella, su binario calcula exactamente lo mismo que el descrito aquí, aunque el archivo binario no sea
+La huella determinista resume una corrida fija de 3\,000 iteraciones. Depende de la biblioteca
+estándar de C++, porque \tsl{std::shuffle} y las distribuciones aleatorias se implementan distinto en
+cada una: \tsl{6457b2dd44660773} con zig/libc++ (el instalador de Windows) y
+\tsl{285bf1758e5dd6a1} con g++/libstdc++ (Linux y MinGW). Si su compilación da la huella de su
+biblioteca, su binario calcula exactamente lo mismo que el publicado, aunque el archivo no sea
 idéntico byte por byte.
 
 \paragraph{2. Verlo trabajar sobre calles reales.} El motor construye su propio mapa a partir de
@@ -1503,7 +1506,8 @@ huella SHA-256.
 \item[Holdout] Conjunto de instancias reservado y no observado durante el diseño.
 \item[Holm] Corrección para comparaciones múltiples que controla el error de la familia de pruebas.
 \item[$O$ grande] Notación que describe cómo crece el número de operaciones de un algoritmo con el
-tamaño de la entrada (Sección~ef{sec:complejidad}).
+tamaño de la entrada (Sección~
+ef{sec:complejidad}).
 \end{description}
 
 \section{Regla literal del selector FAST}

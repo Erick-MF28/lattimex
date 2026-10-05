@@ -54,6 +54,11 @@ def build(verbose: bool = True) -> list[Path]:
         flags += ["-fPIC", "-pthread"]
     elif zig:
         flags += ["-target", "x86_64-windows-gnu"]
+    elif "g++" in os.path.basename(cxx[0]).lower():
+        # MinGW: sin esto la DLL depende de libstdc++-6.dll y libgcc_s_seh-1.dll, que Python 3.8+
+        # no busca en el PATH, y el motor no carga ("Could not find module ... or one of its
+        # dependencies"). Enlazar el runtime de GCC dentro de la DLL la deja autónoma.
+        flags += ["-static", "-static-libgcc", "-static-libstdc++"]
     built = []
     for source, target in TARGETS:
         cmd = [*cxx, *flags, "-o", str(target), str(source)]

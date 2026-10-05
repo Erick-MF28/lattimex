@@ -26,4 +26,4 @@ jobs:
       - name: Pruebas de llamada del servidor local
         run: python -m unittest tests.test_local_api -v
       - name: Huella determinista
-        run: python -m lattimex probe
+        run: python -c "import subprocess, platform; out = subprocess.check_output(['python', '-m', 'lattimex', 'probe'], text=True).strip(); print(out); print('::notice title=Huella determinista (' + platform.system() + ')::' + out)"

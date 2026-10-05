@@ -48,9 +48,13 @@ name. The published ideas that the engine implements are cited in
 | Engine version | lattimex-engine-1.6.0 (in production since 4/09/2026) |
 | SHA-256 of `native/senda_core.cpp` (LF line endings) | `d63db4bc643628e196e24219a483ee99ef420d0596e1c927f1cdf9892e77fa01` |
 | SHA-256 of `native/pack3d.cpp` (LF line endings) | `915f13dd6fbb1d1c3b1c8bb3b3f759b6b302070ff27c83d5cb87dd5443c56b6c` |
-| Deterministic fingerprint (`python -m lattimex probe`) | `6457b2dd44660773` (4 routes, 9 151 m, 3 000 iterations) |
+| Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `6457b2dd44660773` (4 routes, 9 151 m, 3 000 iterations) |
+| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | `285bf1758e5dd6a1` (4 routes, 8 857 m, 3 000 iterations) |
 
-The deterministic fingerprint does not depend on the compiler: two binaries compiled from the same
-source must give the same fingerprint even if the hash of the binary file differs. The SHA-256
+The fingerprint does not depend on optimization (`-O0`, `-O2` and `-O3` give the same one) or on the
+hash of the binary file, but it does depend on the C++ standard library: `std::shuffle` and the random
+distributions are implemented differently in libc++ (zig) and libstdc++ (g++), so the same seed follows
+another trajectory. Both are valid solutions and each build is deterministic. The production engine is
+built with g++ on Linux; the Windows installer, with zig. The SHA-256
 manifest of the files in this copy is kept in the private audit file and is not distributed in this
 repository.
