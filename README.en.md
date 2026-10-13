@@ -49,10 +49,31 @@ python -m lattimex serve --data D:\operations\customer_a
 ```
 
 `python -m lattimex doctor` checks the installation and `python -m lattimex probe` prints the
-engine's deterministic fingerprint. It depends on the C++ standard library used to build it:
-`6457b2dd44660773` with zig/libc++ (the Windows installer and `pip install ziglang`) and
-`285bf1758e5dd6a1` with g++/libstdc++ (Linux and MinGW). If your build gives the fingerprint of its
-library, it computes exactly what the published engine computes.
+engine's deterministic fingerprint. It depends on the C++ standard library used to build it. Version
+1.1.0: `1102c21c0192b381` with zig/libc++ (the Windows installer and `pip install ziglang`); the g++/libstdc++
+fingerprint (Linux and MinGW) is published by the repository's CI for every version. If your build gives
+the fingerprint of its library, it computes exactly what the published engine computes. Version 1.0.0
+fingerprints were `6457b2dd44660773` (zig/libc++) and `285bf1758e5dd6a1` (g++/libstdc++); since 1.1.0
+the fingerprint includes the engine version, so it never matches another version's.
+
+## Three ways to use the engine
+
+Since version 1.1.0 each piece can be tried on its own:
+
+```bash
+python -m lattimex cvrp X-n101-k25.vrp --time 4     # SENDA2 alone, classic CVRP (CVRPLIB files)
+python -m lattimex pack boxes.json                  # the 3D packer alone, for one route
+python -m lattimex serve                            # the full engine, for the Planner
+```
+
+- **SENDA2 alone** splits the time and verifies every solution as in the comparison of guide 2: against
+  HGS-CVRP, +0.33 gap points on 41 X instances (4 s) and +0.07 on A/B/E (2 s, fixed fleet).
+- **The packer alone** (P3L) takes a JSON with the container and the boxes (`stop` = delivery order)
+  and returns the position of each box and whether the packing meets support, fragility and unloading
+  order.
+- **The full engine** routes with SENDA2, packs with P3L keeping the unloading order and, if a route
+  does not fit that way, says so in the response (`lifo_estricto`, `advertencias`). With
+  `"fleet_mode": "up_to"` it may use fewer vehicles than available.
 
 **Rather not use the terminal?** `python -m lattimex app` opens a window that starts the engine,
 prepares your city map and opens the Planner. The same window is packaged as a Windows application
@@ -105,22 +126,23 @@ available under ODbL 1.0.
                                                 │  http://127.0.0.1:8765
                                                 ▼
                          ┌───────────── your computer ─────────────┐
-                         │  local server  →  SENDA (C++)           │
-                         │  SQLite store  →  3D packer (C++)       │
+                         │  local server  →  SENDA2 (C++)          │
+                         │  SQLite store  →  P3L packer (C++)      │
                          │  own map       →  verifier              │
                          └─────────────────────────────────────────┘
 ```
 
 1. **Own map.** `python -m lattimex map` builds, once, the road graph of your city from
    OpenStreetMap. Distances and routes are computed on real streets, without external services.
-2. **Routing.** The routing core, SENDA (*Single-trajectory ENgine with Destroy-and-repair Adaptive
-   search*), follows a single search trajectory per run, with no population and no crossover: it
-   builds routes, improves them with granular local search and restructures them with an adaptive
-   large neighborhood search (ALNS) with adaptive capacity penalties, in a portfolio of four runs in
-   parallel.
-3. **3D loading.** A C++ packer places each box respecting support, fragility, orientation and the
-   unloading order by door; if something does not fit, a mediator readjusts the routes with the
-   fixed fleet.
+2. **Routing.** The routing core, SENDA2, is SENDA (*Single-trajectory ENgine with Destroy-and-repair
+   Adaptive search*) with a cached repair and a polish cap: it follows a single search trajectory per
+   run, with no population and no crossover, builds routes, improves them with granular local search
+   and restructures them with an adaptive large neighborhood search (ALNS), in a portfolio of parallel
+   runs. With few deliveries per vehicle it uses the 1.0.0 SENDA core.
+3. **3D loading.** The P3L packer places each box respecting support, fragility and unloading order,
+   and a strict checker reviews every packing; if something does not fit, a mediator readjusts the
+   routes with the fixed fleet and, as a last resort, relaxes that route's unloading order and reports
+   it.
 4. **Verification.** An independent verifier rechecks distances, capacity, coverage and the geometry
    of every box before the plan is delivered.
 
@@ -133,19 +155,25 @@ The educational guide [**paper/senda_guide_en.pdf**](paper/senda_guide_en.pdf) e
 scratch, with worked examples, every component of SENDA, its computational complexity, how it was
 evaluated against reference solvers from the literature and which evaluation mistakes to avoid. It
 ends with a section for repeating the measurements on your computer. The Spanish original is
-[paper/guia_senda.pdf](paper/guia_senda.pdf). The programs used for comparison are not part of this
-repository; notes and references are in [docs/en/ACADEMIC_NOTES.md](docs/en/ACADEMIC_NOTES.md).
+[paper/guia_senda.pdf](paper/guia_senda.pdf).
+
+The second guide, [**paper/senda2_guide_en.pdf**](paper/senda2_guide_en.pdf) (version 1.1.0), reports
+the advance in the same spirit: SENDA2 against HGS-CVRP and FILO2, how a packer was measured against the
+published optima of Tamke et al. (2025), which 1.0.0 defects that measurement uncovered and how routing
+and packing were integrated. Spanish original: [paper/guia_senda2.pdf](paper/guia_senda2.pdf). The
+programs used for comparison are not part of this repository; notes and references are in [docs/en/ACADEMIC_NOTES.md](docs/en/ACADEMIC_NOTES.md).
 
 ## What is in this repository
 
 | Folder | Contents |
 |---|---|
-| `native/` | SENDA, the routing core (`senda_core.cpp`: single-trajectory ALNS per run with adaptive penalties and a parallel portfolio), and the 3D packer (`pack3d.cpp`) |
-| `lattimex/engine/` | Engine pipeline: effective capacity, 3D packing, fixed-fleet mediation, unloading plan by door |
+| `native/` | Routing cores SENDA2 (`senda2_core.cpp`, default) and SENDA (`senda_core.cpp`, version 1.0.0); 3D packers P3L (`p3l.cpp`, default) and extreme points (`pack3d.cpp`, version 1.0.0) |
+| `lattimex/engine/` | Engine pipeline: effective capacity, 3D packing and strict checker, fixed-fleet mediation, R3L ("up to k" fleet on small instances), unloading plan by door |
+| `lattimex/cvrp.py` | SENDA2 alone on CVRPLIB files (`python -m lattimex cvrp`) |
 | `lattimex/server.py` | Local server for the Planner (listens on 127.0.0.1 only) |
 | `lattimex/maps.py` | Builds your own map from OpenStreetMap |
 | `tests/` | Engine tests, C++/Python equivalence of the packer and server tests |
-| `paper/` | Educational guide, in Spanish and English (LaTeX and PDF) |
+| `paper/` | Educational guides 1 (SENDA, 1.0.0) and 2 (SENDA2 and 3D loading, 1.1.0), in Spanish and English (LaTeX and PDF) |
 | `packaging/windows/` | Windows application and installer (start window, no terminal) |
 | `docs/` | Architecture, Planner connection, security, maps, local API and academic notes (`docs/en/` in English) |
 
@@ -154,7 +182,7 @@ Source code identifiers and comments are mostly in Spanish.
 ## Tests
 
 ```bash
-python -m unittest discover -s tests/engine        # 42 engine tests
+python -m unittest discover -s tests/engine        # engine, packer and `cvrp`/`pack` tests
 python -m unittest tests.test_local_api -v         # full flow and server defenses
 python tests/native/test_pack3d_equivalencia.py    # 72 cases: C++ identical to Python (~10 min)
 python -m lattimex probe                           # deterministic engine fingerprint
@@ -167,7 +195,7 @@ python -m lattimex probe                           # deterministic engine finger
 - **LATTIMEX Planner** (lattimex.com/planner): free to use; it is not distributed in this repository
   and may not be redistributed or commercially exploited by third parties. See
   [its license](https://lattimex.com/planner/licencia.html).
-- **Educational guide** (`paper/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). You may
+- **Educational guides** (`paper/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). You may
   share and adapt it, including commercially, citing the source ([CITATION.cff](CITATION.cff)),
   linking the license and indicating the changes made.
 - **Street data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/).

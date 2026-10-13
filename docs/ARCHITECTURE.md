@@ -19,8 +19,9 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
                                                             │
                                                             ├── map_preparation.py  matriz vial del trabajo
                                                             └── engine_runtime.solve()
-                                                                  ├── ruteo SENDA (native/senda_core.cpp, ctypes)
-                                                                  ├── empaque 3D (native/pack3d.cpp)
+                                                                  ├── ruteo SENDA2 (native/senda2_core.cpp; SENDA 1.0.0 con rutas cortas)
+                                                                  ├── acomodo 3D P3L (native/p3l.cpp) + verificador estricto
+                                                                  ├── R3L (sólo fleet_mode=up_to, instancias pequeñas)
                                                                   ├── mediación con flota fija
                                                                   ├── plan de descarga por puertas
                                                                   └── verificación de la solución
@@ -36,12 +37,16 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
 5. El Planner consulta `GET /api/engine/v1/jobs/<id>` hasta que el estado es `done`, dibuja las rutas
    sobre la capa de calles y guarda la corrida en la base local.
 
-## Por qué el motor no se modificó
+## Versiones del motor
 
-Los módulos de `lattimex/engine/` y `native/` son byte por byte los de la versión de producción
-`lattimex-engine-1.6.0`. El servidor local los importa sin cambios (`lattimex.native.configure()`
-expone las bibliotecas mediante `LATTIMEX_CORE` y `LATTIMEX_PACK3D`). Así los resultados del
-repositorio son los mismos que obtuvieron los usuarios del servicio.
+En la versión 1.0.0 del repositorio, los módulos de `lattimex/engine/` y `native/` eran byte por byte
+los de la versión de producción `lattimex-engine-1.6.0`, para que los resultados del repositorio fueran
+los mismos que obtuvieron los usuarios del servicio. La versión 1.1.0 trae el motor
+`lattimex-engine-1.7.0`: núcleo SENDA2, acomodador P3L con verificador estricto, R3L y el respaldo del
+constructor de flota exacta, medidos en [paper/guia_senda2.pdf](../paper/guia_senda2.pdf). Los fuentes
+de 1.0.0 (`senda_core.cpp`, `pack3d.cpp`) siguen en el repositorio sin cambios y el motor los usa como
+respaldo. El servidor local importa el motor sin cambios (`lattimex.native.configure()` expone las
+bibliotecas mediante `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` y `LATTIMEX_PACK3D`).
 
 ## Mapas
 

@@ -1,7 +1,49 @@
 # Changes
 
-## Unreleased
+## 1.1.0 — not yet released
 
+An advance over 1.0.0: a better routing core, a new 3D packer and the integration of both. Version
+1.0.0 remains available at its `v1.0.0` tag. The measurements are in the new guide,
+[paper/senda2_guide_en.pdf](../../paper/senda2_guide_en.pdf); the SENDA guide
+([paper/senda_guide_en.pdf](../../paper/senda_guide_en.pdf)) is kept unchanged.
+
+**Three ways to use the engine** (try them separately or together):
+
+- **SENDA2 alone, classic CVRP:** `python -m lattimex cvrp X-n101-k25.vrp --time 4`. Reads CVRPLIB files
+  and splits the time as in the guide's comparison. Against HGS-CVRP, on the same machine and clock:
+  +0.33 gap points on 41 X instances (4 s) and +0.07 on 60 A/B/E (2 s, fixed fleet). FILO2 is stronger
+  on X (0.72 % versus 1.74 % for SENDA2).
+- **The packer alone:** `python -m lattimex pack boxes.json` packs one route (P3L) and checks the result
+  against the constraints of Gendreau et al. (2006).
+- **The full engine** (what the Planner uses): routing, packing, mediation and unloading plan.
+
+**Engine changes (`lattimex-engine-1.7.0`):**
+
+- **SENDA2 routing by default** (`native/senda2_core.cpp`): cached regret repair, discarding repairs that
+  do not fit, and a 0.02 s polish cap per new best. With fewer than 6 deliveries per vehicle the engine
+  uses the 1.0.0 SENDA core (`native/senda_core.cpp`), which was better there. It can be forced with
+  `"router": "senda2" | "senda"` in the request or `LATTIMEX_ROUTER`.
+- **P3L packer by default** (`native/p3l.cpp`). On the optimal routes of Tamke et al. (2025), which are
+  known to fit, the 1.0.0 packer rejected 34 % to 61 % depending on the variant; P3L, 24 % to 36 %. On
+  product routes of 60–97 boxes with all constraints, from at least 71 % to at least 15 % (4 % when given
+  500 ms per route). If P3L does not
+  place everything, the 1.0.0 packer is tried in the same variant.
+- **Strict, verified unloading order:** every packing goes through a checker with Gendreau's semantics
+  (it agrees with Krebs's validator on 2,436 of 2,436 packings). Fixes a 1.0.0 defect: a box of a later
+  delivery could end up on top of an earlier one.
+- **Transparency fix:** in 1.0.0, if a route did not fit with the unloading order, the engine relaxed it
+  silently, route by route, before trying mediation. Now mediation first works with the strict order
+  and only if a route still does not fit is it relaxed **and reported**: new `lifo_estricto` and
+  `advertencias` fields in the response (besides the existing per-route `lifo_respetado`). On the 12
+  product instances with all constraints, 1.0.0 returned 24 of 24 "feasible" plans without unloading
+  order; 1.1.0 returns 18 of 24 with strict order and warns on the rest.
+- **Fleet "up to k"** (`"fleet_mode": "up_to"`, optional): the engine may use fewer vehicles than
+  available. On small instances (up to 60 deliveries and 30 boxes per vehicle) it enables **R3L**, a
+  routing search that checks whether the load fits at every step: on the 19 Gendreau instances with
+  Tamke's optima, 285 of 285 valid solutions and +6.9 % distance at 30 s (1.0.0: 81 of 285 valid, +26 %).
+  By default the fleet stays exact, as in 1.0.0.
+- **Exact-fleet constructor fallback:** when the load barely fits in k vehicles, the 1.0.0 constructor
+  could fail (11 of 41 X instances); it now assigns accepting overload and removes it with local search.
 - Build with MinGW g++ on Windows: the GCC runtime is linked into the DLLs
   (`-static-libgcc -static-libstdc++`). Before, the DLLs depended on `libstdc++-6.dll`, which Python
   3.8+ does not look up in the PATH, and the engine did not load.
@@ -11,6 +53,8 @@
   pattern is tried (optimal guillotine base layout, repeated in height) and whichever places more is
   kept. Example: 40 × 30 × 30 cm boxes in a 337 × 137 × 178 cm van go from 160 to 175. Mixed loads
   do not change; neither does the deterministic fingerprint.
+- New deterministic fingerprint; from this version on it includes the engine version, so it never
+  matches another version's.
 
 *Translation of [CHANGELOG.md](../../CHANGELOG.md).*
 

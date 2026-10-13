@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "Si usa LATTIMEX en un trabajo académico, cítelo así."
 title: "LATTIMEX: motor de ruteo de vehículos con acomodo 3D de carga"
-version: 1.0.0
+version: 1.1.0
 date-released: 2026-09-30
 license: MIT
 repository-code: "https://github.com/Erick-MF28/lattimex"

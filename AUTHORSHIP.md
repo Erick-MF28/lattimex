@@ -10,7 +10,8 @@
 
 Desarrollo independiente: el motor es producto de una línea de investigación propia del titular,
 sin afiliación institucional ni cesión de derechos, contrato laboral o institucional que afecte al
-código. Este repositorio contiene el mismo motor que corre en producción en el LATTIMEX Planner.
+código. La versión 1.0.0 de este repositorio contenía el mismo motor que corría en producción en el
+LATTIMEX Planner (1.6.0); la versión 1.1.0 trae el motor 1.7.0, descrito abajo.
 
 ## Código de terceros incorporado
 
@@ -40,6 +41,28 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 
 ## Versiones y huellas
+
+### Versión 1.1.0
+
+| Elemento | Valor |
+|---|---|
+| Versión del repositorio | 1.1.0 |
+| Versión del motor | lattimex-engine-1.7.0 |
+| SHA-256 de `native/senda2_core.cpp` (finales de línea LF) | `b2a5a730ea429e98112a07fc46737f7dfd19a01c5c48229c65f18edbd8090ad8` |
+| SHA-256 de `native/p3l.cpp` (finales de línea LF) | `afb81b4cd9ddf3d145a58941267840ee649f11392079b535acdd012df48050ba` |
+| `native/senda_core.cpp` y `native/pack3d.cpp` | sin cambios respecto de 1.0.0 (huellas abajo) |
+| Huella determinista con zig/libc++ (`python -m lattimex probe`) | `1102c21c0192b381` (4 rutas, 8 857 m, 3 000 iteraciones) |
+| Huella determinista con g++/libstdc++ (Linux, MinGW) | la publica el CI del repositorio |
+
+Comparación textual de los archivos nuevos de 1.1.0 (`senda2_core.cpp` en lo que agrega a
+`senda_core.cpp`, `p3l.cpp`, `p3l_packer.py`, `r3l.py`, `exact_fleet_repair.py`, `cvrp.py`), con la
+misma metodología, revisada en octubre de 2026: 0 líneas idénticas con HGS-CVRP, FILO2, el
+SolutionValidator de Krebs (C++ y Java) y el código de Tamke et al. (MIT); 0 fragmentos de 12 tokens
+en común con el validador de Krebs y sólo fragmentos genéricos (`std::vector<std::pair<double,`) con
+los demás. P3L implementa la semántica pública de Gendreau et al. (2006) para el orden de descarga; el
+validador de Krebs se usó sólo como juez externo, sin incorporar su código.
+
+### Versión 1.0.0
 
 | Elemento | Valor |
 |---|---|

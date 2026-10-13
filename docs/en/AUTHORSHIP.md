@@ -10,8 +10,8 @@
 
 Independent development: the engine is the product of the rights holder's own line of research,
 with no institutional affiliation and no assignment of rights, employment or institutional contract
-affecting the code. This repository contains the same engine that runs in production in the
-LATTIMEX Planner.
+affecting the code. Version 1.0.0 of this repository contained the same engine that ran in production in the
+LATTIMEX Planner (1.6.0); version 1.1.0 brings engine 1.7.0, described below.
 
 ## Third-party code incorporated
 
@@ -41,6 +41,28 @@ name. The published ideas that the engine implements are cited in
 [ACADEMIC_NOTES.md](ACADEMIC_NOTES.md).
 
 ## Versions and fingerprints
+
+### Version 1.1.0
+
+| Item | Value |
+|---|---|
+| Repository version | 1.1.0 |
+| Engine version | lattimex-engine-1.7.0 |
+| SHA-256 of `native/senda2_core.cpp` (LF line endings) | `b2a5a730ea429e98112a07fc46737f7dfd19a01c5c48229c65f18edbd8090ad8` |
+| SHA-256 of `native/p3l.cpp` (LF line endings) | `afb81b4cd9ddf3d145a58941267840ee649f11392079b535acdd012df48050ba` |
+| `native/senda_core.cpp` and `native/pack3d.cpp` | unchanged from 1.0.0 (fingerprints below) |
+| Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `1102c21c0192b381` (4 routes, 8 857 m, 3 000 iterations) |
+| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | published by the repository's CI |
+
+Textual comparison of the files new in 1.1.0 (`senda2_core.cpp` in what it adds to `senda_core.cpp`,
+`p3l.cpp`, `p3l_packer.py`, `r3l.py`, `exact_fleet_repair.py`, `cvrp.py`), with the same methodology,
+reviewed in October 2026: 0 identical lines with HGS-CVRP, FILO2, Krebs's SolutionValidator (C++ and
+Java) and the code of Tamke et al. (MIT); 0 shared 12-token fragments with Krebs's validator and only
+generic fragments (`std::vector<std::pair<double,`) with the others. P3L implements the public semantics
+of Gendreau et al. (2006) for the unloading order; Krebs's validator was used only as an external judge,
+without incorporating its code.
+
+### Version 1.0.0
 
 | Item | Value |
 |---|---|

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lattimex"
-version = "1.0.0"
+version = "1.1.0"
 description = "Ruteo de vehículos con acomodo 3D de carga, ejecutado en su propia computadora"
 readme = "README.md"
 license = { text = "MIT" }

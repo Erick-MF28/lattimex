@@ -19,8 +19,9 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
                                                             │
                                                             ├── map_preparation.py  road matrix of the job
                                                             └── engine_runtime.solve()
-                                                                  ├── SENDA routing (native/senda_core.cpp, ctypes)
-                                                                  ├── 3D packing (native/pack3d.cpp)
+                                                                  ├── SENDA2 routing (native/senda2_core.cpp; 1.0.0 SENDA on short routes)
+                                                                  ├── P3L 3D packing (native/p3l.cpp) + strict checker
+                                                                  ├── R3L (fleet_mode=up_to only, small instances)
                                                                   ├── fixed-fleet mediation
                                                                   ├── unloading plan by door
                                                                   └── solution verification
@@ -36,12 +37,16 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
 5. The Planner polls `GET /api/engine/v1/jobs/<id>` until the status is `done`, draws the routes on
    the street layer and stores the run in the local database.
 
-## Why the engine was not modified
+## Engine versions
 
-The modules in `lattimex/engine/` and `native/` are byte for byte those of the production version
-`lattimex-engine-1.6.0`. The local server imports them unchanged (`lattimex.native.configure()`
-exposes the libraries through `LATTIMEX_CORE` and `LATTIMEX_PACK3D`). This way the results of the
-repository are the same that users of the service obtained.
+In version 1.0.0 of the repository, the modules in `lattimex/engine/` and `native/` were byte for byte
+those of the production version `lattimex-engine-1.6.0`, so that the repository's results were the same
+that users of the service obtained. Version 1.1.0 brings engine `lattimex-engine-1.7.0`: the SENDA2 core,
+the P3L packer with a strict checker, R3L and the exact-fleet constructor fallback, measured in
+[paper/senda2_guide_en.pdf](../../paper/senda2_guide_en.pdf). The 1.0.0 sources (`senda_core.cpp`,
+`pack3d.cpp`) remain in the repository unchanged and the engine uses them as fallbacks. The local server
+imports the engine unchanged (`lattimex.native.configure()` exposes the libraries through
+`LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` and `LATTIMEX_PACK3D`).
 
 ## Maps
 

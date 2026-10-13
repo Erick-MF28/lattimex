@@ -1,7 +1,50 @@
 # Cambios
 
-## Sin publicar
+## 1.1.0 — pendiente de publicar
 
+Avance sobre la 1.0.0: un núcleo de ruteo mejor, un acomodador 3D nuevo y la integración de ambos. La
+versión 1.0.0 sigue disponible en su etiqueta `v1.0.0`. Las mediciones están en la guía nueva,
+[paper/guia_senda2.pdf](paper/guia_senda2.pdf); la guía de SENDA ([paper/guia_senda.pdf](paper/guia_senda.pdf))
+se conserva sin cambios.
+
+**Tres formas de usar el motor** (pruébelas por separado o juntas):
+
+- **SENDA2 solo, CVRP clásico:** `python -m lattimex cvrp X-n101-k25.vrp --time 4`. Lee archivos de
+  CVRPLIB y reparte el tiempo como en la comparación de la guía. Frente a HGS-CVRP, en la misma máquina
+  y con el mismo reloj: +0.33 puntos de gap en 41 instancias X (4 s) y +0.07 en 60 A/B/E (2 s, flota
+  fija). FILO2 es más fuerte en X (0.72 % contra 1.74 % de SENDA2).
+- **El acomodador solo:** `python -m lattimex pack cajas.json` acomoda una ruta (P3L) y verifica el
+  resultado con las restricciones de Gendreau et al. (2006).
+- **El motor completo** (lo que usa el Planner): ruteo, acomodo, mediación y plan de descarga.
+
+**Cambios en el motor (`lattimex-engine-1.7.0`):**
+
+- **Ruteo SENDA2 por omisión** (`native/senda2_core.cpp`): reparación regret con caché, descarte de
+  reparaciones que no caben y tope de pulido de 0.02 s por nuevo mejor. Con menos de 6 entregas por
+  unidad el motor usa el núcleo SENDA de 1.0.0 (`native/senda_core.cpp`), que fue mejor ahí. Se puede
+  forzar con `"router": "senda2" | "senda"` en la petición o `LATTIMEX_ROUTER`.
+- **Acomodador P3L por omisión** (`native/p3l.cpp`). Con las rutas óptimas de Tamke et al. (2025), que se
+  sabe que caben, el empacador de 1.0.0 rechazaba entre 34 % y 61 % según la variante; P3L, entre 24 % y
+  36 %. En rutas de producto de 60–97 cajas con todas las restricciones, de al menos 71 % a al menos
+  15 % (4 % si se le dan 500 ms por ruta). Si P3L no coloca todo, se intenta el empacador de 1.0.0 en la misma variante.
+- **Orden de descarga estricto y verificado:** todo acomodo pasa por un verificador con la semántica de
+  Gendreau (coincide con el validador de Krebs en 2,436 de 2,436 acomodos). Corrige un defecto de 1.0.0:
+  una caja de una entrega posterior podía quedar encima de una anterior.
+- **Corrección de transparencia:** en 1.0.0, si una ruta no cabía respetando el orden de descarga, el
+  motor lo relajaba en silencio, ruta por ruta, antes de intentar la mediación. Ahora la mediación trabaja
+  primero con el orden estricto y, sólo si una ruta sigue sin caber, se relaja **y se informa**: campos
+  nuevos `lifo_estricto` y `advertencias` en la respuesta (además de `lifo_respetado` por ruta, que ya
+  existía). En las 12 instancias de producto con todas las restricciones, la 1.0.0 entregaba 24 de 24
+  planes "factibles" sin orden de descarga; la 1.1.0 entrega 18 de 24 con orden estricto y avisa en las
+  demás.
+- **Flota "hasta k"** (`"fleet_mode": "up_to"`, opcional): el motor puede usar menos unidades de las
+  disponibles. En instancias pequeñas (hasta 60 entregas y 30 cajas por unidad) activa **R3L**, un ruteo
+  que revisa si la carga cabe en cada paso de la búsqueda: en las 19 instancias de Gendreau con
+  óptimos de Tamke, 285 de 285 soluciones válidas y +6.9 % de distancia a 30 s (1.0.0: 81 de 285 válidas,
+  +26 %). Por omisión la flota sigue siendo exacta, como en 1.0.0.
+- **Respaldo del constructor de flota exacta:** cuando la carga apenas cabe en k unidades, el constructor
+  de 1.0.0 podía fallar (11 de 41 instancias X); ahora se reparte aceptando sobrecarga y se elimina con
+  búsqueda local.
 - Compilación con MinGW g++ en Windows: el runtime de GCC queda dentro de las DLL
   (`-static-libgcc -static-libstdc++`). Antes las DLL dependían de `libstdc++-6.dll`, que Python
   3.8+ no busca en el PATH, y el motor no cargaba.
@@ -11,6 +54,8 @@
   prueba un patrón por capas (guillotina óptima de la base, repetida en altura) y se conserva el
   que coloque más. Ejemplo: cajas de 40 × 30 × 30 cm en una van de 337 × 137 × 178 cm pasan de
   160 a 175. Las cargas mixtas no cambian; la huella determinista tampoco.
+- Huella determinista nueva; desde esta versión incluye la versión del motor, para que nunca coincida con
+  la de otra versión.
 
 *[English version](docs/en/CHANGELOG.md)*
 

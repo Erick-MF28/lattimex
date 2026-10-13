@@ -8,6 +8,8 @@
   python -m lattimex app                            ventana de inicio (sin terminal)
   python -m lattimex doctor                         revisa la instalación
   python -m lattimex probe                          huella determinista del motor
+  python -m lattimex cvrp X-n101-k25.vrp --time 4   SENDA2 solo, sobre un archivo de CVRPLIB
+  python -m lattimex pack cajas.json                acomodador 3D solo (P3L), para una ruta
   python -m lattimex sample --n 60 > entregas.csv   entregas sintéticas para probar
 
 Los datos (mapas, base SQLite y resultados) viven en ./data. Para usar otra carpeta:
@@ -89,8 +91,9 @@ def cmd_probe(args):
     """Huella determinista: instancia entera fija y presupuesto por iteraciones.
 
     Dos binarios del mismo fuente y la misma biblioteca estándar de C++ dan la misma huella aunque
-    su hash de archivo difiera: 6457b2dd44660773 con zig/libc++ y 285bf1758e5dd6a1 con g++/libstdc++
-    (std::shuffle y las distribuciones aleatorias difieren entre bibliotecas)."""
+    su hash de archivo difiera (std::shuffle y las distribuciones aleatorias difieren entre
+    bibliotecas). Desde 1.1.0 la huella incluye la versión del motor, para que nunca coincida con la de
+    otra versión; las huellas publicadas están en el README."""
     os.environ["LATTIMEX_ITER_BUDGET"] = str(args.iters)
     os.environ["LATTIMEX_THREADS"] = "1"
     native.configure()
@@ -106,9 +109,49 @@ def cmd_probe(args):
            "budget_sec": 30, "perfil": "fast", "seed": 7}
     res = er.solve(req)
     routes = [r["sequence"] for r in res["routes"]]
-    firma = hashlib.sha256(json.dumps(routes).encode()).hexdigest()[:16]
-    print(json.dumps({"engine": ENGINE_VERSION, "core_sha": er.CORE_SHA, "iters": args.iters,
+    firma = hashlib.sha256(json.dumps({"engine": ENGINE_VERSION, "routes": routes}).encode()).hexdigest()[:16]
+    print(json.dumps({"engine": ENGINE_VERSION, "core_sha": er.CORE_SHA, "router": res["metrics"].get("nucleo"),
+                      "iters": args.iters,
                       "routes": len(routes), "distance_m": res.get("total_distance_m"), "signature": firma}))
+
+
+def cmd_cvrp(args):
+    """SENDA2 solo sobre una instancia de CVRPLIB (paper/guia_senda2.pdf, sección 2)."""
+    from . import cvrp  # noqa: PLC0415
+    inst = cvrp.read_cvrplib(args.instance)
+    res = cvrp.solve(inst, time_sec=args.time, seed=args.seed, fleet=args.fleet, router=args.router)
+    if args.sol and res["verified"]:
+        cvrp.write_solution(args.sol, res)
+    resumen = {k: res[k] for k in ("instance", "router", "fleet", "seed", "time_sec", "verified", "cost", "wall_sec")}
+    resumen["routes"] = len(res["routes"])
+    if args.bks:
+        resumen["gap_pct"] = round(100 * (res["cost"] / args.bks - 1), 4) if res["verified"] else None
+    print(json.dumps(resumen, ensure_ascii=False))
+    sys.exit(0 if res["verified"] else 1)
+
+
+def cmd_pack(args):
+    """Acomodador P3L solo: una ruta, un contenedor (paper/guia_senda2.pdf, sección 3).
+
+    Entrada JSON: {"cargo_cm": [L, W, H], "constraints": {"support", "fragility", "lifo"},
+    "items": [{"id", "dims_cm": [l, w, h], "stop": 1 = primera entrega, "fragile"}]}."""
+    native.configure()
+    import engine_runtime as er  # noqa: PLC0415
+    import p3l_packer  # noqa: PLC0415
+    data = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    variant = er._variant(data.get("constraints") or {})
+    items = [{"id": str(it["id"]), "dims": [float(d) for d in it["dims_cm"]], "rank": int(it.get("stop", 1)),
+              "fragile": bool(it.get("fragile", False))} for it in data["items"]]
+    ok, pl = p3l_packer.pack(items, data["cargo_cm"], variant, time_ms=args.time_ms, seed=args.seed)
+    by = {it["id"]: it for it in items}
+    motivo = p3l_packer.verify([{**b, "rank": by[b["id"]]["rank"], "fragile": by[b["id"]]["fragile"]} for b in pl],
+                               data["cargo_cm"], variant)
+    print(json.dumps({"variant": variant, "all_placed": ok, "placed": len(pl), "items": len(items),
+                      "verified": motivo is None, "reason": motivo,
+                      "placements": [{"id": b["id"], "x": b["x"], "y": b["y"], "z": b["z"],
+                                      "length_cm": b["l"], "width_cm": b["w"], "height_cm": b["h"]} for b in pl]},
+                     ensure_ascii=False, indent=1))
+    sys.exit(0 if ok and motivo is None else 1)
 
 
 def cmd_sample(args):
@@ -165,6 +208,17 @@ def main(argv=None):
     sub.add_parser("app", help="ventana de inicio: servidor, mapa y Planner sin terminal").set_defaults(fn=cmd_app)
     pr = sub.add_parser("probe", help="huella determinista del motor")
     pr.add_argument("--iters", type=int, default=3000); pr.set_defaults(fn=cmd_probe)
+    cv = sub.add_parser("cvrp", help="SENDA2 solo sobre un archivo de CVRPLIB (.vrp)")
+    cv.add_argument("instance"); cv.add_argument("--time", type=float, default=4.0, help="segundos (80 %% internos)")
+    cv.add_argument("--seed", type=int, default=1)
+    cv.add_argument("--fleet", choices=["free", "fixed"], default="free", help="fixed: a lo sumo k rutas (-kNN)")
+    cv.add_argument("--router", choices=["senda2", "senda"], default="senda2", help="senda = núcleo de 1.0.0")
+    cv.add_argument("--sol", help="escribe la solución en formato CVRPLIB")
+    cv.add_argument("--bks", type=float, help="mejor solución conocida, para imprimir el gap")
+    cv.set_defaults(fn=cmd_cvrp)
+    pk = sub.add_parser("pack", help="acomodador 3D solo (P3L) para una ruta en JSON")
+    pk.add_argument("file"); pk.add_argument("--time-ms", type=float, default=50.0); pk.add_argument("--seed", type=int, default=1)
+    pk.set_defaults(fn=cmd_pack)
     sa = sub.add_parser("sample", parents=[datos], help="entregas sintéticas para probar")
     sa.add_argument("--n", type=int, default=60); sa.add_argument("--seed", type=int, default=1)
     sa.add_argument("--map"); sa.set_defaults(fn=cmd_sample)

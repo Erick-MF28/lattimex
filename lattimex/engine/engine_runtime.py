@@ -71,6 +71,11 @@ REOPT_MIN, REOPT_MAX = 0.25, 0.45
 PASO_ALPHA = 0.10
 # P3L: tope por ruta en ms (perfil fast; thorough lo multiplica por 4), medido en paper/guia_senda2.pdf.
 P3L_MS = 50.0
+# R3L (ruteo con revisión de carga en la búsqueda) sólo con fleet_mode="up_to" e instancias pequeñas:
+# cada revisión re-acomoda la ruta completa y con rutas de 60-75 cajas cuesta 15-300 ms.
+R3L_MAX_CLIENTES = 60
+R3L_MAX_CAJAS_POR_UNIDAD = 30
+R3L_FRAC_SENDA2 = 0.3
 # Mediacion con flota fija: rondas y candidatos evaluados por ronda.
 MEDIACION_RONDAS = 3
 MEDIACION_CANDIDATOS = 24
@@ -468,17 +473,7 @@ def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
         seed = int(hashlib.sha256(repr(tuple(route)).encode()).hexdigest()[:8], 16)
         ok, pl = p3l_packer.pack(items, cargo, var_actual, time_ms=P3L_MS * cfg["reinicios"], seed=seed)
         if ok:
-            placements = []
-            for b in pl:
-                it = meta[b["id"]]
-                rotada = abs(b["l"] - it["dimensionsCm"][0]) > 1e-9
-                placements.append({"guideId": it["guideId"], "clientIndex": it["clientIndex"],
-                                   "trackingCode": it.get("trackingCode") or str(it["guideId"]),
-                                   "deliveryRank": rank[it["clientIndex"]],
-                                   "x": b["x"], "y": b["y"], "z": b["z"], "xCm": b["x"], "yCm": b["y"], "zCm": b["z"],
-                                   "lengthCm": b["l"], "widthCm": b["w"], "heightCm": b["h"],
-                                   "orientation": 2 if rotada else 0, "volumeCm3": it["volumeCm3"],
-                                   "weightKg": it["weightKg"], "fragile": it["fragile"], "stackable": it["stackable"]})
+            placements = _colocaciones_motor(pl, meta, rank)
             if _verificar(placements, cargo, var_actual) is None:
                 report = {"status": "heuristic-feasible", "certified": True, "totalVolumeCm3": total_v,
                           "totalWeightKg": total_w, "physicalCapacityCm3": float(veh["capacity"]),
@@ -505,6 +500,22 @@ def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
     report["_esfuerzo"] = esfuerzo
     cache[key] = report
     return report
+
+
+def _colocaciones_motor(pl, meta, rank):
+    """Colocaciones de P3L ({'id','x','y','z','l','w','h'}) en el formato de placements del motor."""
+    out = []
+    for b in pl:
+        it = meta[b["id"]]
+        rotada = abs(b["l"] - it["dimensionsCm"][0]) > 1e-9
+        out.append({"guideId": it["guideId"], "clientIndex": it["clientIndex"],
+                    "trackingCode": it.get("trackingCode") or str(it["guideId"]),
+                    "deliveryRank": rank[it["clientIndex"]],
+                    "x": b["x"], "y": b["y"], "z": b["z"], "xCm": b["x"], "yCm": b["y"], "zCm": b["z"],
+                    "lengthCm": b["l"], "widthCm": b["w"], "heightCm": b["h"],
+                    "orientation": 2 if rotada else 0, "volumeCm3": it["volumeCm3"],
+                    "weightKg": it["weightKg"], "fragile": it["fragile"], "stackable": it["stackable"]})
+    return out
 
 
 def _verificar(placements, cargo, variant):
@@ -789,11 +800,94 @@ def solve(req: dict) -> dict:
             return solve_fleet(req, sys.modules[__name__])
         req = dict(req, vehicle=fleet[0], fleet_count=len(fleet))
         req.pop("fleet")
-    result = _solve_uniform(req)
+    if str(req.get("fleet_mode", "exact")).lower() == "up_to" and _r3l_aplica(req):
+        result = _solve_r3l(req)
+    else:
+        result = _solve_uniform(req)
     for i, route in enumerate(result["routes"]):
         route["vehicle_index"] = i
     result["solution_status"] = "feasible" if result["feasible"] else "heuristic-unresolved"
     return result
+
+
+def _r3l_aplica(req: dict) -> bool:
+    if not p3l_packer.AVAILABLE:
+        return False
+    clientes = {int(p["node"]) for p in req["packages"]}
+    k = max(1, int(req.get("fleet_count", 1)))
+    return len(clientes) <= R3L_MAX_CLIENTES and len(req["packages"]) <= R3L_MAX_CAJAS_POR_UNIDAD * k
+
+
+def _solve_r3l(req: dict) -> dict:
+    """Flota "hasta k" en instancias pequeñas: SENDA2 + P3L con R3L_FRAC_SENDA2 del presupuesto y R3L con
+    el resto, partiendo de esas rutas. Devuelve la mejor solución válida; puede usar menos de k unidades."""
+    import r3l
+    started = time.perf_counter()
+    budget = float(req.get("budget_sec", 10))
+    variant = _variant(req.get("constraints") or {})
+    k = max(1, int(req.get("fleet_count", 1)))
+    seed = int(req.get("seed", 20260726))
+    base, warm = None, None
+    try:
+        base = _solve_uniform(dict(req, budget_sec=budget * R3L_FRAC_SENDA2,
+                                   max_wall_sec=max(1.0, 1.5 * budget * R3L_FRAC_SENDA2)))
+        warm = [r["sequence"] for r in base["routes"]]
+    except ValueError:
+        pass                                 # p. ej. la carga no cabe en exactamente k unidades
+    veh = req["vehicle"]
+    por_cliente = {}
+    for pk in req["packages"]:
+        por_cliente.setdefault(int(pk["node"]), []).append(
+            {"id": str(pk["id"]), "dims": [float(d) for d in pk["dims_cm"]], "mass": float(pk.get("weight_kg", 0)),
+             "fragile": bool(pk.get("fragile", False))})
+    P = r3l.Problem(req["matrix_m"], por_cliente, veh["cargo_cm"], veh["max_weight_kg"], variant, k, seed=seed)
+    restante = max(0.5, budget - (time.perf_counter() - started))
+    out = r3l.solve(P, time_limit=restante, seed=seed, init_routes=warm)
+    S = out["best"]
+    matrix = req["matrix_m"]
+    if S is None or (base is not None and base["feasible"] and base.get("lifo_estricto")
+                     and base["total_distance_m"] <= sum(_route_distance_m(matrix, r) for r in S.routes) + 1e-6):
+        if base is None:
+            raise ValueError("No se encontró una asignación que quepa en las unidades seleccionadas")
+        base["metrics"]["fleet_mode"] = "up_to"
+        base["metrics"]["r3l"] = {"iters": out["iters"], "usada": False}
+        return base
+    source = _normalized_source(req, relaxed_fleet=k)
+    items_idx = _items_by_customer(source)
+    cargo = list(source["vehicle"]["cargoDimensions"])
+    puertas = veh.get("doors") or ["rear"]
+    out_routes = []
+    for r in S.routes:
+        rank = {c: p + 1 for p, c in enumerate(r)}
+        meta = {it["id"]: it for c in r for it in items_idx.get(c, ())}
+        placements = _colocaciones_motor(P.placements(r), meta, rank)
+        motivo = _verificar(placements, cargo, variant)
+        if motivo is not None:                # defensa: R3L sólo guarda acomodos de P3L
+            raise RuntimeError(f"R3L produjo un acomodo inválido ({motivo})")
+        acceso = _evaluar_acceso(r, placements, puertas)
+        vol = sum(it["volumeCm3"] for it in meta.values())
+        out_routes.append({
+            "acceso": acceso, "packing_feasible": True, "operational_feasible": acceso["factible"],
+            "sequence": [int(c) for c in r], "distance_m": round(_route_distance_m(matrix, r), 1),
+            "packages": [it["id"] for c in r for it in items_idx.get(c, [])],
+            "loading_status": "heuristic-feasible", "utilization": vol / source["vehicle"]["capacity"],
+            "placements": placements, "lifo_respetado": True, "restricciones_aplicadas": variant})
+    accesos = [r["acceso"] for r in out_routes]
+    return {
+        "contract": "pen3q.lattimex.solve.v1",
+        "feasible": True, "packing_feasible": True,
+        "operational_feasible": all(a["factible"] for a in accesos),
+        "lifo_estricto": True, "advertencias": [],
+        "vehicles": len(out_routes),
+        "total_distance_m": round(sum(r["distance_m"] for r in out_routes), 1),
+        "routes": out_routes,
+        "metrics": {"runtime_sec": round(time.perf_counter() - started, 2), "variant": variant, "fleet_mode": "up_to",
+                    "unidades_usadas": len(out_routes), "unidades_disponibles": k,
+                    "acceso": _resumen_acceso(accesos, puertas), "nucleo": "senda2+r3l",
+                    "r3l": {"iters": out["iters"], "usada": True, "segundos": round(out["wall"], 2)}},
+        "engine": {"version": ENGINE_VERSION, "perfil": str(req.get("perfil", "fast")), "core": CORE_SHA,
+                   "packer": "p3l", "router": "senda2+r3l"},
+    }
 
 
 def _solve_uniform(req: dict) -> dict:

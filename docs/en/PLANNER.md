@@ -6,7 +6,7 @@
 2. Open **https://lattimex.com/planner** in Chrome, Edge or Firefox.
 3. The first time, Chrome and Edge ask whether lattimex.com may *access other apps and services on
    this device*. Accept: that is the connection to your local server.
-4. The Planner header shows `● Motor local · <map> · v1.6.0`.
+4. The Planner header shows `● Motor local · <map> · v1.7.0`.
 
 If the server is off, the Planner shows the installation instructions and connects by itself as soon
 as the server responds. The Planner interface is currently in Spanish.

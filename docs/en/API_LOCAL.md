@@ -47,3 +47,18 @@ local server and the Planner.
 Point 0 is the distribution center. Each destination needs at least one package. The result
 includes `routes[].sequence`, `routes[].placements` (x, y, z and dimensions of each box), the
 utilization and the unloading plan by door.
+
+Optional fields since version 1.1.0:
+
+| Field | Values | Effect |
+|---|---|---|
+| `fleet_mode` | `exact` (default), `up_to` | `up_to` allows using fewer vehicles than sent; on small instances (up to 60 destinations and 30 boxes per vehicle) it enables R3L, the routing search that checks the load at every step. |
+| `router` | `auto` (default), `senda2`, `senda` | Routing core. `auto` uses SENDA2 and, with fewer than 6 destinations per vehicle, the 1.0.0 SENDA core. |
+
+New response fields:
+
+| Field | Meaning |
+|---|---|
+| `lifo_estricto` | `true` if every route respects the requested unloading order; `false` if any was relaxed. |
+| `advertencias` | List of warnings. `orden-de-descarga-relajado` tells which routes did not fit with the unloading order and were packed without it (the operator will have to move boxes when delivering). |
+| `routes[].lifo_respetado` | Already existed: `false` on each relaxed route. |

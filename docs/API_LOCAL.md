@@ -47,3 +47,18 @@ el servidor local y el Planner.
 El punto 0 es el centro de distribución. Cada destino necesita al menos un paquete. El resultado
 incluye `routes[].sequence`, `routes[].placements` (x, y, z y medidas de cada caja), la ocupación y el
 plan de descarga por puertas.
+
+Campos opcionales desde la versión 1.1.0:
+
+| Campo | Valores | Efecto |
+|---|---|---|
+| `fleet_mode` | `exact` (predeterminado), `up_to` | `up_to` permite usar menos unidades de las enviadas; en instancias pequeñas (hasta 60 destinos y 30 cajas por unidad) activa R3L, el ruteo que revisa la carga en cada paso. |
+| `router` | `auto` (predeterminado), `senda2`, `senda` | Núcleo de ruteo. `auto` usa SENDA2 y, con menos de 6 destinos por unidad, el núcleo SENDA de 1.0.0. |
+
+Campos nuevos en la respuesta:
+
+| Campo | Significado |
+|---|---|
+| `lifo_estricto` | `true` si todas las rutas respetan el orden de descarga pedido; `false` si alguna se relajó. |
+| `advertencias` | Lista de avisos. `orden-de-descarga-relajado` indica qué rutas no cupieron respetando el orden de descarga y se acomodaron sin él (el operador tendrá que mover cajas al entregar). |
+| `routes[].lifo_respetado` | Ya existía: `false` en cada ruta relajada. |

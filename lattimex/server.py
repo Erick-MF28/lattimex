@@ -114,13 +114,19 @@ def validate_solve(payload: dict) -> dict:
     perfil = str(payload.get("perfil", "fast")).lower()
     if perfil not in ("fast", "thorough"):
         raise ValueError("perfil debe ser 'fast' o 'thorough'")
+    fleet_mode = str(payload.get("fleet_mode", "exact")).lower()
+    if fleet_mode not in ("exact", "up_to"):
+        raise ValueError("fleet_mode debe ser 'exact' o 'up_to'")
+    router = str(payload.get("router", "auto")).lower()
+    if router not in ("auto", "senda2", "senda"):
+        raise ValueError("router debe ser 'auto', 'senda2' o 'senda'")
     return {
         "points": clean_points, "fleet": clean_fleet, "fleet_count": len(clean_fleet),
         "packages": clean_packages,
         "constraints": {k: bool(constraints.get(k, False)) for k in ("support", "fragility", "lifo")},
         "budget_sec": finite_number(payload.get("budget_sec", 15), minimum=1, maximum=MAX_BUDGET_SEC,
                                     field="budget_sec"),
-        "perfil": perfil,
+        "perfil": perfil, "fleet_mode": fleet_mode, "router": router,
     }
 
 

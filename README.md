@@ -48,10 +48,31 @@ python -m lattimex serve --data D:\operaciones\cliente_a
 ```
 
 `python -m lattimex doctor` revisa la instalación y `python -m lattimex probe` imprime la huella
-determinista del motor. Depende de la biblioteca estándar de C++ con la que se compiló:
-`6457b2dd44660773` con zig/libc++ (el instalador de Windows y `pip install ziglang`) y
-`285bf1758e5dd6a1` con g++/libstdc++ (Linux y MinGW). Si su compilación da la huella de su
-biblioteca, calcula exactamente lo mismo que el motor publicado.
+determinista del motor. Depende de la biblioteca estándar de C++ con la que se compiló. Versión
+1.1.0: `1102c21c0192b381` con zig/libc++ (el instalador de Windows y `pip install ziglang`); la huella con
+g++/libstdc++ (Linux y MinGW) la publica el CI del repositorio en cada versión. Si su compilación da la
+huella de su biblioteca, calcula exactamente lo mismo que el motor publicado. Las huellas de la versión
+1.0.0 eran `6457b2dd44660773` (zig/libc++) y `285bf1758e5dd6a1` (g++/libstdc++); desde 1.1.0 la huella
+incluye la versión del motor, así que no coincide con la de ninguna otra versión.
+
+## Tres formas de usar el motor
+
+Desde la versión 1.1.0 cada pieza se puede probar por separado:
+
+```bash
+python -m lattimex cvrp X-n101-k25.vrp --time 4     # SENDA2 solo, CVRP clásico (archivos de CVRPLIB)
+python -m lattimex pack cajas.json                  # el acomodador 3D solo, para una ruta
+python -m lattimex serve                            # el motor completo, para el Planner
+```
+
+- **SENDA2 solo** reparte el tiempo y verifica cada solución como en la comparación de la guía 2:
+  frente a HGS-CVRP, +0.33 puntos de gap en 41 instancias X (4 s) y +0.07 en A/B/E (2 s, flota fija).
+- **El acomodador solo** (P3L) recibe un JSON con el contenedor y las cajas (`stop` = orden de
+  entrega) y devuelve la posición de cada caja y si el acomodo cumple soporte, fragilidad y orden de
+  descarga.
+- **El motor completo** rutea con SENDA2, acomoda con P3L respetando el orden de descarga y, si una
+  ruta no cabe así, lo dice en la respuesta (`lifo_estricto`, `advertencias`). Con
+  `"fleet_mode": "up_to"` puede usar menos unidades de las disponibles.
 
 **¿Prefiere no usar la terminal?** `python -m lattimex app` abre una ventana que arranca el motor,
 prepara el mapa de su ciudad y abre el Planner. La misma ventana se empaqueta como aplicación de
@@ -104,20 +125,22 @@ disponibles bajo ODbL 1.0.
                                                 │  http://127.0.0.1:8765
                                                 ▼
                          ┌──────────── su computadora ────────────┐
-                         │  servidor local  →  SENDA (C++)         │
-                         │  base SQLite     →  empacador 3D (C++)  │
+                         │  servidor local  →  SENDA2 (C++)        │
+                         │  base SQLite     →  acomodador P3L (C++)│
                          │  mapa propio     →  verificador          │
                          └─────────────────────────────────────────┘
 ```
 
 1. **Mapa propio.** `python -m lattimex map` construye, una sola vez, el grafo vial de su ciudad a
    partir de OpenStreetMap. Distancias y rutas se calculan sobre calles reales, sin servicios externos.
-2. **Ruteo.** El núcleo de ruteo, SENDA (*Single-trajectory ENgine with Destroy-and-repair Adaptive search*), sigue una sola
-   trayectoria de búsqueda por corrida, sin población ni cruce: construye rutas, las mejora con búsqueda local
-   granular y las reestructura con una búsqueda adaptativa de vecindarios grandes (ALNS) con
-   penalización adaptativa de capacidad, en un portafolio de cuatro corridas en paralelo.
-3. **Carga 3D.** Un empacador en C++ coloca cada caja respetando soporte, fragilidad, orientación y
-   el orden de descarga por puertas; si algo no cabe, un mediador reajusta las rutas con la flota fija.
+2. **Ruteo.** El núcleo de ruteo, SENDA2, es SENDA (*Single-trajectory ENgine with Destroy-and-repair
+   Adaptive search*) con una reparación con caché y un tope de pulido: sigue una sola trayectoria de
+   búsqueda por corrida, sin población ni cruce, construye rutas, las mejora con búsqueda local granular
+   y las reestructura con una búsqueda adaptativa de vecindarios grandes (ALNS), en un portafolio de
+   corridas en paralelo. Con pocas entregas por unidad usa el núcleo SENDA de la versión 1.0.0.
+3. **Carga 3D.** El acomodador P3L coloca cada caja respetando soporte, fragilidad y orden de
+   descarga, y un verificador estricto revisa cada acomodo; si algo no cabe, un mediador reajusta las
+   rutas con la flota fija y, como último recurso, relaja el orden de descarga de esa ruta y lo informa.
 4. **Verificación.** Un verificador independiente revalida distancias, capacidad, cobertura y la
    geometría de cada caja antes de entregar el plan.
 
@@ -130,26 +153,32 @@ La guía educativa [**paper/guia_senda.pdf**](paper/guia_senda.pdf) explica desd
 cero, con ejemplos resueltos, cada componente de SENDA, su complejidad computacional, cómo se evaluó frente a solvers de
 referencia de la literatura y qué errores de evaluación conviene evitar. Termina con una sección para
 repetir las mediciones en su computadora. Versión en inglés:
-[paper/senda_guide_en.pdf](paper/senda_guide_en.pdf). Los programas usados para comparar no forman parte de este
+[paper/senda_guide_en.pdf](paper/senda_guide_en.pdf).
+
+La segunda guía, [**paper/guia_senda2.pdf**](paper/guia_senda2.pdf) (versión 1.1.0), cuenta el avance
+con la misma línea: SENDA2 frente a HGS-CVRP y FILO2, cómo se midió un acomodador contra los óptimos
+publicados de Tamke et al. (2025), qué defectos de la versión 1.0.0 destapó esa medición y cómo se
+integraron ruteo y acomodo. Versión en inglés: [paper/senda2_guide_en.pdf](paper/senda2_guide_en.pdf). Los programas usados para comparar no forman parte de este
 repositorio; las notas y referencias están en [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 
 ## Qué hay en este repositorio
 
 | Carpeta | Contenido |
 |---|---|
-| `native/` | SENDA, el núcleo de ruteo (`senda_core.cpp`: ALNS de trayectoria única por corrida con penalización adaptativa y portafolio en paralelo), y el empacador 3D (`pack3d.cpp`) |
-| `lattimex/engine/` | Tubería del motor: capacidad efectiva, empaque 3D, mediación con flota fija, plan de descarga por puertas |
+| `native/` | Núcleos de ruteo SENDA2 (`senda2_core.cpp`, por omisión) y SENDA (`senda_core.cpp`, versión 1.0.0); acomodadores 3D P3L (`p3l.cpp`, por omisión) y de puntos extremos (`pack3d.cpp`, versión 1.0.0) |
+| `lattimex/engine/` | Tubería del motor: capacidad efectiva, empaque 3D y verificador estricto, mediación con flota fija, R3L (flota "hasta k" en instancias pequeñas), plan de descarga por puertas |
+| `lattimex/cvrp.py` | SENDA2 solo sobre archivos de CVRPLIB (`python -m lattimex cvrp`) |
 | `lattimex/server.py` | Servidor local para el Planner (solo escucha en 127.0.0.1) |
 | `lattimex/maps.py` | Construcción del mapa propio desde OpenStreetMap |
 | `tests/` | Pruebas del motor, equivalencia C++/Python del empacador y pruebas del servidor |
-| `paper/` | Guía educativa en español y en inglés (LaTeX y PDF) |
+| `paper/` | Guías educativas 1 (SENDA, 1.0.0) y 2 (SENDA2 y carga 3D, 1.1.0), en español y en inglés (LaTeX y PDF) |
 | `packaging/windows/` | Aplicación e instalador de Windows (ventana de inicio sin terminal) |
 | `docs/` | Arquitectura, conexión con el Planner, seguridad, mapas, API local y notas académicas (`docs/en/` en inglés) |
 
 ## Pruebas
 
 ```bash
-python -m unittest discover -s tests/engine        # 42 pruebas del motor
+python -m unittest discover -s tests/engine        # pruebas del motor, del acomodador y de `cvrp`/`pack`
 python -m unittest tests.test_local_api -v         # recorrido completo y defensas del servidor
 python tests/native/test_pack3d_equivalencia.py    # 72 casos: C++ idéntico a Python (tarda ~10 min)
 python -m lattimex probe                           # huella determinista del motor
@@ -162,7 +191,7 @@ python -m lattimex probe                           # huella determinista del mot
 - **LATTIMEX Planner** (lattimex.com/planner): uso gratuito; no se distribuye en este repositorio y
   no puede redistribuirse ni explotarse comercialmente por terceros. Ver
   [su licencia](https://lattimex.com/planner/licencia.html).
-- **Guía educativa** (`paper/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es).
+- **Guías educativas** (`paper/`): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es).
   Puede compartirla y adaptarla, incluso comercialmente, citando la fuente ([CITATION.cff](CITATION.cff)),
   enlazando la licencia e indicando los cambios realizados.
 - **Datos de calles:** © colaboradores de OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/).
@@ -181,7 +210,8 @@ capacitación)? Visite [lattimex.com](https://lattimex.com) o escriba a **contac
 ## English
 
 The full English version of this page is [README.en.md](README.en.md); the documentation is in
-[docs/en/](docs/en/) and the educational guide in [paper/senda_guide_en.pdf](paper/senda_guide_en.pdf).
+[docs/en/](docs/en/) and the educational guides in [paper/senda_guide_en.pdf](paper/senda_guide_en.pdf) and
+[paper/senda2_guide_en.pdf](paper/senda2_guide_en.pdf).
 
 ## Donaciones
 

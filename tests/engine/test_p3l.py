@@ -105,5 +105,22 @@ class RelajacionInformadaTest(unittest.TestCase):
         self.assertFalse(rel["lifo_respetado"])
 
 
+class R3LTest(unittest.TestCase):
+    def test_hasta_k_respeta_el_orden_de_descarga(self):
+        # con 2 unidades disponibles y flota "hasta k", R3L reparte el cuadro sin relajar nada
+        req = dict(peticion_cuadro(), fleet_count=2, fleet_mode="up_to", budget_sec=2.0)
+        res = er.solve(req)
+        self.assertTrue(res["feasible"])
+        self.assertTrue(res["lifo_estricto"])
+        self.assertEqual(res["advertencias"], [])
+        self.assertLessEqual(res["vehicles"], 2)
+        self.assertEqual(sorted(c for r in res["routes"] for c in r["sequence"]), [1, 2, 3, 4])
+
+    def test_flota_exacta_no_usa_r3l(self):
+        res = er.solve(dict(peticion_cuadro(), fleet_count=2, budget_sec=1.0))
+        self.assertNotEqual(res["metrics"].get("nucleo"), "senda2+r3l")
+        self.assertEqual(res["vehicles"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()
