@@ -249,6 +249,82 @@ def _request_seed(request: dict[str, Any]) -> int:
     return value & 0xFFFFFFFF
 
 
+def _normal_values(limit: float, sizes: Iterable[float]) -> list[float]:
+    """Largos alcanzables como suma de medidas de caja (patrones normales), hasta limit."""
+    values = {0.0}; frontier = [0.0]
+    while frontier:
+        nxt = []
+        for value in frontier:
+            for size in sizes:
+                total = round(value + size, 6)
+                if total <= limit + EPS and total not in values:
+                    values.add(total); nxt.append(total)
+        frontier = nxt
+    return sorted(values)
+
+
+def _guillotine_layout(length: float, width: float,
+                       bases: list[tuple[float, float]]) -> list[tuple[float, float, float, float]]:
+    """Mejor acomodo guillotina de rectángulos idénticos (con las bases permitidas) en
+    length × width. Devuelve (x, y, largo, ancho) de cada caja."""
+    if not bases:
+        return []
+    xs = _normal_values(length, {a for a, _ in bases})
+    ys = _normal_values(width, {b for _, b in bases})
+
+    def floor_to(values: list[float], limit: float) -> float:
+        return max(v for v in values if v <= limit + EPS)
+
+    if len(xs) * len(ys) > 20000:          # cajas diminutas frente a la caja: solo cuadrícula
+        xs, ys = [], []
+    memo: dict[tuple[float, float], tuple[int, tuple]] = {}
+
+    def solve(l: float, w: float) -> tuple[int, tuple]:
+        key = (l, w)
+        if key in memo:
+            return memo[key]
+        best: tuple[int, tuple] = (0, ("empty",))
+        for a, b in bases:
+            count = int(math.floor((l + EPS) / a)) * int(math.floor((w + EPS) / b))
+            if count > best[0]:
+                best = (count, ("grid", a, b))
+        for x in xs:
+            if x <= EPS or x > l / 2 + EPS:
+                continue
+            rest = floor_to(xs, l - x)
+            value = solve(x, w)[0] + solve(rest, w)[0]
+            if value > best[0]:
+                best = (value, ("cut-x", x, rest))
+        for y in ys:
+            if y <= EPS or y > w / 2 + EPS:
+                continue
+            rest = floor_to(ys, w - y)
+            value = solve(l, y)[0] + solve(l, rest)[0]
+            if value > best[0]:
+                best = (value, ("cut-y", y, rest))
+        memo[key] = best
+        return best
+
+    out: list[tuple[float, float, float, float]] = []
+
+    def emit(l: float, w: float, x0: float, y0: float) -> None:
+        _, plan = solve(l, w)
+        if plan[0] == "grid":
+            _, a, b = plan
+            for i in range(int(math.floor((l + EPS) / a))):
+                for j in range(int(math.floor((w + EPS) / b))):
+                    out.append((x0 + i * a, y0 + j * b, a, b))
+        elif plan[0] == "cut-x":
+            _, x, rest = plan
+            emit(x, w, x0, y0); emit(rest, w, x0 + x, y0)
+        elif plan[0] == "cut-y":
+            _, y, rest = plan
+            emit(l, y, x0, y0); emit(l, rest, x0, y0 + y)
+
+    emit(length, width, 0.0, 0.0)
+    return out
+
+
 class ExtremePoint3D:
     def __init__(self, options: LoadingOptions):
         self.options = options
@@ -524,6 +600,15 @@ class ExtremePoint3D:
                         break
 
         assert best is not None
+        patron = None
+        if best["unplaced"]:
+            # Con cajas idénticas el voraz de puntos extremos fija una orientación por capa y
+            # deja huecos que un patrón por capas sí aprovecha; se conserva el que coloque más.
+            patron = self._homogeneous_layers(items, cargo)
+            if patron is not None and len(patron["placements"]) > len(best["placements"]):
+                best = {**patron, "attempt": best.get("attempt", 0)}
+            else:
+                patron = None
         complete, verification_reason = self._verify(request, best["placements"])
         unplaced = best["unplaced"]
         asentadas = 0
@@ -554,8 +639,54 @@ class ExtremePoint3D:
             }],
             "constraints": self._constraints(), "restartsAttempted": best["attempt"],
             "settledItems": asentadas,
+            **({"pattern": "homogeneous-layers"} if patron is not None else {}),
             "elapsedMs": (time.perf_counter() - started) * 1000,
         }
+
+    def _homogeneous_layers(self, items: list[dict[str, Any]], cargo: list[float]) -> dict[str, Any] | None:
+        """Patrón por capas para cajas idénticas: el mejor acomodo guillotina de la base
+        (programación dinámica sobre combinaciones normales de largo y ancho), repetido
+        capa sobre capa. Cada caja de una capa descansa completa sobre la de abajo."""
+        if len(items) < 2:
+            return None
+        first = items[0]
+        if any(item["dimensionsCm"] != first["dimensionsCm"] or item["rotations"] != first["rotations"] for item in items):
+            return None
+        if self.options.enforce_unload_order and len({item["deliveryRank"] for item in items}) > 1:
+            return None
+        if self.options.enforce_fragility and len({item["fragile"] for item in items}) > 1:
+            return None
+        stackable = all(item["stackable"] for item in items)
+        best: tuple[int, float, list[tuple[float, float, float, float]]] | None = None
+        for height in sorted({rotation["dimensions"][2] for rotation in first["rotations"]}):
+            bases = sorted({(r["dimensions"][0], r["dimensions"][1]) for r in first["rotations"]
+                            if abs(r["dimensions"][2] - height) < EPS})
+            layout = _guillotine_layout(cargo[0], cargo[1], bases)
+            layers = int(math.floor((cargo[2] + EPS) / height)) if stackable else 1
+            total = min(len(items), len(layout) * layers)
+            if layout and (best is None or total > best[0]):
+                best = (total, height, layout)
+        if best is None or best[0] == 0:
+            return None
+        total, height, layout = best
+        placed: list[dict[str, Any]] = []
+        for index, item in enumerate(items[:total]):
+            layer, slot = divmod(index, len(layout))
+            x, y, length, width = layout[slot]
+            rotation = next(r for r in first["rotations"] if abs(r["dimensions"][0] - length) < EPS
+                            and abs(r["dimensions"][1] - width) < EPS and abs(r["dimensions"][2] - height) < EPS)
+            z = layer * height
+            placed.append({
+                "guideId": item["guideId"], "clientIndex": item["clientIndex"],
+                "trackingCode": item.get("trackingCode") or str(item["guideId"]),
+                "deliveryRank": item["deliveryRank"],
+                "x": x, "y": y, "z": z, "xCm": x, "yCm": y, "zCm": z,
+                "lengthCm": length, "widthCm": width, "heightCm": height,
+                "orientation": rotation["orientation"], "volumeCm3": item["volumeCm3"],
+                "weightKg": item["weightKg"], "fragile": item["fragile"], "stackable": item["stackable"],
+            })
+        return {"placements": placed, "unplaced": items[total:],
+                "placedVolume": sum(item["volumeCm3"] for item in placed)}
 
     def _constraints(self) -> dict[str, Any]:
         return {

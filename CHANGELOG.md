@@ -7,6 +7,10 @@
   3.8+ no busca en el PATH, y el motor no cargaba.
 - Documentadas las dos huellas deterministas según la biblioteca estándar de C++ (zig/libc++ y
   g++/libstdc++); el CI publica la suya como anotación.
+- Empacador 3D: con cajas idénticas, si el voraz de puntos extremos no las coloca todas, se
+  prueba un patrón por capas (guillotina óptima de la base, repetida en altura) y se conserva el
+  que coloque más. Ejemplo: cajas de 40 × 30 × 30 cm en una van de 337 × 137 × 178 cm pasan de
+  160 a 175. Las cargas mixtas no cambian; la huella determinista tampoco.
 
 *[English version](docs/en/CHANGELOG.md)*
 

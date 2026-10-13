@@ -7,6 +7,10 @@
   3.8+ does not look up in the PATH, and the engine did not load.
 - Documented the two deterministic fingerprints by C++ standard library (zig/libc++ and
   g++/libstdc++); CI publishes its own as an annotation.
+- 3D packer: with identical boxes, if the extreme-point greedy does not place them all, a layered
+  pattern is tried (optimal guillotine base layout, repeated in height) and whichever places more is
+  kept. Example: 40 × 30 × 30 cm boxes in a 337 × 137 × 178 cm van go from 160 to 175. Mixed loads
+  do not change; neither does the deterministic fingerprint.
 
 *Translation of [CHANGELOG.md](../../CHANGELOG.md).*
 
