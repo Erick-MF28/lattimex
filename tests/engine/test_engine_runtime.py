@@ -155,11 +155,37 @@ class PortafolioTest(unittest.TestCase):
 
     def test_portafolio_activo_y_determinista(self):
         self.assertIsNotNone(er._MULTI, "el nucleo debe exportar senda_solve_multi_par")
+        self.assertIsNotNone(er._MULTI2, "SENDA2 debe exportar senda_solve_multi_par")
         a = er.solve(self._instancia())
         b = er.solve(self._instancia())
         self.assertTrue(a["metrics"]["portafolio"])
-        self.assertEqual(a["engine"]["router"], "senda-portfolio/2x2")
+        self.assertEqual(a["engine"]["router"], "senda2-portfolio/3x2")    # 6 entregas por unidad
         self.assertEqual([r["sequence"] for r in a["routes"]], [r["sequence"] for r in b["routes"]])
+
+    def test_senda_1_0_a_peticion(self):
+        a = er.solve(dict(self._instancia(), router="senda"))
+        self.assertEqual(a["engine"]["router"], "senda-portfolio/2x2")
+        self.assertEqual(a["metrics"]["nucleo"], "senda")
+
+    def test_rutas_cortas_usan_senda_1_0(self):
+        req = self._instancia()
+        req["fleet_count"] = 3                                             # 4 entregas por unidad
+        self.assertEqual(er._elegir_nucleo("auto", 12, 3), "senda")
+        self.assertEqual(er._elegir_nucleo("auto", 12, 2), "senda2")
+        self.assertEqual(er.solve(req)["metrics"]["nucleo"], "senda")
+
+
+class ConstructorFlotaExactaTest(unittest.TestCase):
+    def test_respaldo_cuando_el_voraz_no_cabe(self):
+        coords = [(0, 0), (10, 0), (-10, 0), (0, 10), (0, -10), (7, 7), (-7, -7)]
+        M = [[((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** .5 for b in coords] for a in coords]
+        dem = {1: 6.0, 2: 6.0, 3: 4.0, 4: 4.0, 5: 5.0, 6: 5.0}         # 30 = 3 x 10, sólo en pares exactos
+        with self.assertRaises(ValueError):
+            er._exact_fleet_greedy(M, dem, 10.0, 3)
+        rutas = er._exact_fleet_warm(M, dem, 10.0, 3)
+        self.assertEqual(len(rutas), 3)
+        self.assertEqual(sorted(c for r in rutas for c in r), [1, 2, 3, 4, 5, 6])
+        self.assertTrue(all(sum(dem[c] for c in r) <= 10.0 for r in rutas))
 
     def test_normalizacion_es_conservadora(self):
         dem, cap = er._normalizar_demandas({1: 300.0, 2: 700.0, 3: 0.4}, 1000.0)

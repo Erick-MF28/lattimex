@@ -1,8 +1,9 @@
 # Copyright (c) 2026 LATTIMEX. Licencia MIT (ver LICENSE).
 """Compilación y localización de las bibliotecas nativas del motor.
 
-El motor de ruteo (native/senda_core.cpp) y el empacador 3D (native/pack3d.cpp)
-se compilan en la computadora del usuario. Se usa, en este orden:
+Los núcleos de ruteo (native/senda2_core.cpp, por omisión desde 1.1.0, y native/senda_core.cpp,
+el de la versión 1.0.0) y los acomodadores 3D (native/p3l.cpp, por omisión desde 1.1.0, y
+native/pack3d.cpp) se compilan en la computadora del usuario. Se usa, en este orden:
   1. el compilador indicado en la variable CXX,
   2. g++ o clang++ del sistema,
   3. el compilador zig distribuido por PyPI (`pip install ziglang`), útil en Windows
@@ -24,8 +25,11 @@ ENGINE_DIR = Path(__file__).resolve().parent / "engine"
 
 SUFFIX = {"Windows": ".dll", "Darwin": ".dylib"}.get(platform.system(), ".so")
 CORE_LIB = NATIVE_DIR / f"libsenda{SUFFIX}"
+CORE2_LIB = NATIVE_DIR / f"libsenda2{SUFFIX}"
 PACK_LIB = NATIVE_DIR / f"liblattimex_pack3d{SUFFIX}"
-TARGETS = ((NATIVE_SRC / "senda_core.cpp", CORE_LIB), (NATIVE_SRC / "pack3d.cpp", PACK_LIB))
+P3L_LIB = NATIVE_DIR / f"liblattimex_p3l{SUFFIX}"
+TARGETS = ((NATIVE_SRC / "senda2_core.cpp", CORE2_LIB), (NATIVE_SRC / "senda_core.cpp", CORE_LIB),
+           (NATIVE_SRC / "pack3d.cpp", PACK_LIB), (NATIVE_SRC / "p3l.cpp", P3L_LIB))
 
 
 def _compiler() -> list[str]:
@@ -45,7 +49,7 @@ def _compiler() -> list[str]:
 
 
 def build(verbose: bool = True) -> list[Path]:
-    """Compila ambas bibliotecas en lattimex/_native/."""
+    """Compila las bibliotecas nativas en lattimex/_native/."""
     NATIVE_DIR.mkdir(parents=True, exist_ok=True)
     cxx = _compiler()
     zig = "ziglang" in " ".join(cxx)
@@ -83,14 +87,20 @@ def configure() -> None:
         sys.path.insert(0, str(ENGINE_DIR))
     if CORE_LIB.exists():
         os.environ.setdefault("LATTIMEX_CORE", str(CORE_LIB))
+    if CORE2_LIB.exists():
+        os.environ.setdefault("LATTIMEX_CORE2", str(CORE2_LIB))
     if PACK_LIB.exists():
         os.environ.setdefault("LATTIMEX_PACK3D", str(PACK_LIB))
+    if P3L_LIB.exists():
+        os.environ.setdefault("LATTIMEX_P3L", str(P3L_LIB))
 
 
 def status() -> dict:
     return {
         "platform": f"{platform.system()} {platform.machine()}",
         "python": sys.version.split()[0],
-        "core": str(CORE_LIB) if CORE_LIB.exists() else None,
+        "core": str(CORE2_LIB) if CORE2_LIB.exists() else None,
+        "core_1_0": str(CORE_LIB) if CORE_LIB.exists() else None,
+        "p3l": str(P3L_LIB) if P3L_LIB.exists() else None,
         "pack3d": str(PACK_LIB) if PACK_LIB.exists() else None,
     }

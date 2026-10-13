@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Motor LATTIMEX (PRIVADO — vive solo en el volumen /engine del worker).
 
-Pipeline: routing SENDA C++ (matriz vial + capacidad efectiva alpha*V, con
-escalera de alpha si la carga no cabe en la flota exacta)
+Pipeline: routing SENDA2 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
+efectiva alpha*V, con escalera de alpha si la carga no cabe en la flota exacta)
 -> empaque 3D por ruta (ExtremePoint3D, reinicios adaptativos, asentado por gravedad)
 -> mediacion con flota fija (invertir/rotar rutas, reubicar clientes fallidos)
 -> re-optimizacion warm-start con revalidacion de empaque.
@@ -38,10 +38,17 @@ RESCATE_RONDAS = 3
 RESCATE_CANDIDATOS = {"fast": 6, "thorough": 12}
 
 DIR = Path(__file__).resolve().parent
-# LATTIMEX_CORE permite cargar otro binario (p.ej. la DLL de Windows en pruebas locales).
+# Núcleos de ruteo. LATTIMEX_CORE2 = SENDA2 (desde 1.1.0) y LATTIMEX_CORE = SENDA (1.0.0); ambos
+# exponen la misma interfaz C. lattimex.native.configure() fija las dos rutas.
 LIB_PATH = Path(os.environ.get("LATTIMEX_CORE") or DIR / "libsenda.so")
-CORE_SHA = hashlib.sha256(LIB_PATH.read_bytes()).hexdigest()[:12]
-ENGINE_VERSION = "lattimex-engine-1.6.0"
+LIB2_PATH = Path(os.environ["LATTIMEX_CORE2"]) if os.environ.get("LATTIMEX_CORE2") else None
+CORE_SHA = hashlib.sha256((LIB2_PATH or LIB_PATH).read_bytes()).hexdigest()[:12]
+ENGINE_VERSION = "lattimex-engine-1.7.0"
+# Selección del núcleo: "auto" (predeterminado), "senda2" o "senda". En "auto" se usa SENDA2 salvo con
+# menos de RUTAS_CORTAS entregas por unidad, donde SENDA 1.0 fue mejor (paper/guia_senda2.pdf, §2.4:
+# +3.0 % de SENDA2 en X con menos de 6 clientes por ruta; -0.9 % con 12 o más).
+ROUTER = os.environ.get("LATTIMEX_ROUTER", "auto").lower()
+RUTAS_CORTAS = 6
 
 # Perfiles de esfuerzo. 'fast' es el predeterminado: prioriza entregar una
 # solucion factible en segundos. 'thorough' agota el esfuerzo de empaque para
@@ -77,6 +84,13 @@ HILOS = max(1, int(os.environ.get("LATTIMEX_THREADS", "2")))
 #            k   moves  penalty  d_min  d_max
 CONFIGS = [(15,   3,      0,     0.10,  0.35),
            (25,   7,      1,     0.05,  0.20)]
+# SENDA2: tres configuraciones (todas con or-opt3, por ser flota fija); pulido modo 3 = tope
+# min(0.02 s, 20 % restante) por nuevo mejor, 2 pasadas de intercambio, 50 llamadas de pulido y sin
+# corte por estancamiento (medido: el corte no cambia la calidad, sólo la latencia).
+CONFIGS2 = [(15,   7,      0,     0.10,  0.35),
+            (25,   7,      0,     0.10,  0.35),
+            (25,   7,      1,     0.10,  0.35)]
+SENDA2_POLISH, SENDA2_SWAP, SENDA2_CALLS, SENDA2_STAGNATION = 3, 2, 50, 0
 SEMILLAS_POR_CONFIG = 2
 # Normalizacion de la demanda escalar: capacidad = ESCALA sin importar si se
 # rutea por peso o por volumen. El nucleo fija su penalizacion de capacidad con
@@ -92,20 +106,38 @@ I32P = ctypes.POINTER(ctypes.c_int32)
 I64P = ctypes.POINTER(ctypes.c_int64)
 U64P = ctypes.POINTER(ctypes.c_uint64)
 F64P = ctypes.POINTER(ctypes.c_double)
-_LIB = ctypes.CDLL(str(LIB_PATH))
-_LIB.senda_solve.restype = ctypes.c_int
-_LIB.senda_solve.argtypes = [ctypes.c_int, F64P, F64P, I32P, I32P,
-    ctypes.c_int, ctypes.c_int, ctypes.c_int, I32P, ctypes.c_int, I32P, ctypes.c_int,
-    ctypes.c_double, ctypes.c_uint64, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-    I32P, ctypes.c_int, I64P]
-_MULTI = getattr(_LIB, "senda_solve_multi_par", None)
-if _MULTI is not None:
-    _MULTI.restype = ctypes.c_int
-    _MULTI.argtypes = [ctypes.c_int, F64P, F64P, I32P, I32P,
+
+
+def _load_core(path: Path):
+    lib = ctypes.CDLL(str(path))
+    lib.senda_solve.restype = ctypes.c_int
+    lib.senda_solve.argtypes = [ctypes.c_int, F64P, F64P, I32P, I32P,
         ctypes.c_int, ctypes.c_int, ctypes.c_int, I32P, ctypes.c_int, I32P, ctypes.c_int,
-        U64P, ctypes.c_int,
-        I32P, I32P, I32P, I32P, I64P, I32P, I32P, I32P, F64P, F64P, F64P, F64P, I64P,
-        ctypes.c_int, ctypes.c_int, ctypes.c_double, I32P, ctypes.c_int, I64P]
+        ctypes.c_double, ctypes.c_uint64, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+        I32P, ctypes.c_int, I64P]
+    multi = getattr(lib, "senda_solve_multi_par", None)
+    if multi is not None:
+        multi.restype = ctypes.c_int
+        multi.argtypes = [ctypes.c_int, F64P, F64P, I32P, I32P,
+            ctypes.c_int, ctypes.c_int, ctypes.c_int, I32P, ctypes.c_int, I32P, ctypes.c_int,
+            U64P, ctypes.c_int,
+            I32P, I32P, I32P, I32P, I64P, I32P, I32P, I32P, F64P, F64P, F64P, F64P, I64P,
+            ctypes.c_int, ctypes.c_int, ctypes.c_double, I32P, ctypes.c_int, I64P]
+    return lib, multi
+
+
+_LIB, _MULTI = _load_core(LIB_PATH)
+_LIB2, _MULTI2 = _load_core(LIB2_PATH) if LIB2_PATH else (None, None)
+
+
+def _elegir_nucleo(router: str | None, clientes: int, unidades: int) -> str:
+    """Nombre del núcleo a usar: 'senda2' o 'senda'."""
+    pedido = (router or ROUTER or "auto").lower()
+    if _LIB2 is None or pedido == "senda":
+        return "senda"
+    if pedido == "senda2":
+        return "senda2"
+    return "senda" if unidades > 0 and clientes / unidades < RUTAS_CORTAS else "senda2"
 
 
 def _variant(constraints: dict) -> str:
@@ -206,6 +238,19 @@ def _ensure_route_count(routes: list[list[int]], count: int) -> list[list[int]]:
 
 
 def _exact_fleet_warm(matrix, demands, capacity, fleet_count):
+    """Constructor de flota exacta; si no cabe en k rutas, respaldo con reparación de la asignación
+    (exact_fleet_repair, desde 1.1.0)."""
+    try:
+        return _exact_fleet_greedy(matrix, demands, capacity, fleet_count)
+    except ValueError:
+        from exact_fleet_repair import repair_assignment
+        routes = repair_assignment(matrix, demands, capacity, fleet_count)
+        if routes is None:
+            raise
+        return routes
+
+
+def _exact_fleet_greedy(matrix, demands, capacity, fleet_count):
     """Construye exactamente k rutas antes de optimizar, sin post-split."""
     nodes = sorted(demands, key=lambda node: (-demands[node], node))
     if len(nodes) < fleet_count:
@@ -256,7 +301,7 @@ def _normalizar_demandas(demands_map: dict, capacity: float) -> tuple[dict, int]
 
 
 def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None, fleet_hint=-1,
-                   portafolio: bool | None = None, stats: dict | None = None):
+                   portafolio: bool | None = None, stats: dict | None = None, router: str | None = None):
     flat = array("i", [0] * (n * n))
     for a in range(n):
         base, row = a * n, matrix[a]
@@ -279,41 +324,51 @@ def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None
     out = array("i", [0] * out_cap)
     info = (ctypes.c_int64 * 10)()
     k_def = min(25, max(1, len(customers) - 1))
-    usar_multi = (PORTAFOLIO if portafolio is None else portafolio) and _MULTI is not None \
+    nucleo = _elegir_nucleo(router, len(customers), int(fleet_hint))
+    lib, multi = (_LIB2, _MULTI2) if nucleo == "senda2" else (_LIB, _MULTI)
+    configs = CONFIGS2 if nucleo == "senda2" else CONFIGS
+    usar_multi = (PORTAFOLIO if portafolio is None else portafolio) and multi is not None \
         and len(customers) >= 8
     if usar_multi:
-        nconf = len(CONFIGS)
+        nconf = len(configs)
         nseeds = SEMILLAS_POR_CONFIG
         trabajos = nconf * nseeds
         # Cada corrida recibe budget*hilos/trabajos de pared (el nucleo suma un
         # 12% de pulido inicial): el portafolio completo cabe en budget_sec.
         por_corrida = max(0.05, float(budget_sec) * HILOS / trabajos / 1.12)
         seeds = (ctypes.c_uint64 * nseeds)(*[(int(seed) + 7919 * i) & 0x7FFFFFFF for i in range(nseeds)])
-        cfg_k = (ctypes.c_int32 * nconf)(*[min(c[0], k_def) for c in CONFIGS])
-        cfg_mv = (ctypes.c_int32 * nconf)(*[c[1] for c in CONFIGS])
-        cfg_pen = (ctypes.c_int32 * nconf)(*[c[2] for c in CONFIGS])
+        cfg_k = (ctypes.c_int32 * nconf)(*[min(c[0], k_def) for c in configs])
+        cfg_mv = (ctypes.c_int32 * nconf)(*[c[1] for c in configs])
+        cfg_pen = (ctypes.c_int32 * nconf)(*[c[2] for c in configs])
         modo = 1 if ITER_BUDGET > 0 else 0
         cfg_mode = (ctypes.c_int32 * nconf)(*([modo] * nconf))       # 0 pared, 1 iteraciones
         cfg_iters = (ctypes.c_int64 * nconf)(*([ITER_BUDGET] * nconf))
-        cfg_polish = (ctypes.c_int32 * nconf)(*([1] * nconf))        # pulido temporizado
-        cfg_swap = (ctypes.c_int32 * nconf)(*([-1] * nconf))
-        cfg_calls = (ctypes.c_int32 * nconf)(*([-1] * nconf))
-        cfg_dmin = (ctypes.c_double * nconf)(*[c[3] for c in CONFIGS])
-        cfg_dmax = (ctypes.c_double * nconf)(*[c[4] for c in CONFIGS])
+        if nucleo == "senda2":
+            cfg_polish = (ctypes.c_int32 * nconf)(*([SENDA2_POLISH] * nconf))
+            cfg_swap = (ctypes.c_int32 * nconf)(*([SENDA2_SWAP] * nconf))
+            cfg_calls = (ctypes.c_int32 * nconf)(*([SENDA2_CALLS] * nconf))
+            cfg_stag = (ctypes.c_int64 * nconf)(*([SENDA2_STAGNATION] * nconf))
+        else:
+            cfg_polish = (ctypes.c_int32 * nconf)(*([1] * nconf))    # pulido temporizado
+            cfg_swap = (ctypes.c_int32 * nconf)(*([-1] * nconf))
+            cfg_calls = (ctypes.c_int32 * nconf)(*([-1] * nconf))
+            cfg_stag = I64P()
+        cfg_dmin = (ctypes.c_double * nconf)(*[c[3] for c in configs])
+        cfg_dmax = (ctypes.c_double * nconf)(*[c[4] for c in configs])
         cfg_cand = (ctypes.c_double * nconf)(*([0.08] * nconf))
         cfg_bpb = (ctypes.c_double * nconf)(*([0.15] * nconf))
-        rc = _MULTI(n, F64P(), F64P(),
+        rc = multi(n, F64P(), F64P(),
             (ctypes.c_int32 * len(flat)).from_buffer(flat),
             (ctypes.c_int32 * n).from_buffer(dem), cap_int, 0, int(fleet_hint),
             (ctypes.c_int32 * len(customers)).from_buffer(customers), len(customers),
             (ctypes.c_int32 * len(init)).from_buffer(init), init_len,
             seeds, nseeds,
             cfg_k, cfg_mv, cfg_pen, cfg_mode, cfg_iters, cfg_polish, cfg_swap, cfg_calls,
-            cfg_dmin, cfg_dmax, cfg_cand, cfg_bpb, I64P(),
+            cfg_dmin, cfg_dmax, cfg_cand, cfg_bpb, cfg_stag,
             HILOS, nconf, por_corrida,
             (ctypes.c_int32 * out_cap).from_buffer(out), out_cap, info)
     else:
-        rc = _LIB.senda_solve(n, F64P(), F64P(),
+        rc = lib.senda_solve(n, F64P(), F64P(),
             (ctypes.c_int32 * len(flat)).from_buffer(flat),
             (ctypes.c_int32 * n).from_buffer(dem), cap_int, 0, int(fleet_hint),
             (ctypes.c_int32 * len(customers)).from_buffer(customers), len(customers),
@@ -325,7 +380,7 @@ def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None
         raise RuntimeError(f"routing rc={rc}")
     if stats is not None:
         stats.update({"iters": int(info[1]), "evals": int(info[2]), "dist": int(info[3]),
-                      "multi": bool(usar_multi)})
+                      "multi": bool(usar_multi), "router": nucleo})
     routes, cur = [], []
     for i in range(int(info[0])):
         v = out[i]
@@ -710,8 +765,10 @@ def _solve_uniform(req: dict) -> dict:
             raise ValueError(str(ultimo_error))
         alpha_cap = capacity
 
+    router_req = req.get("router")
+    nucleo = _elegir_nucleo(router_req, sum(1 for v in demands.values() if v > 0), fleet_count)
     routes = _solve_routing(matrix, demands, capacity, n, seed, budget * FRACCION_RUTEO,
-                            warm=exact_warm, fleet_hint=fleet_count)
+                            warm=exact_warm, fleet_hint=fleet_count, router=nucleo)
     rutas_nucleo = len(routes)
     if len(routes) < fleet_count:
         # El nucleo trata la flota como maximo: conservar su solucion optimizada
@@ -753,7 +810,7 @@ def _solve_uniform(req: dict) -> dict:
         if reopt_sec >= 0.2:
             base_dist = _total_distance(matrix, routes)
             cand = _solve_routing(matrix, demands, capacity, n, seed + 7919,
-                                  reopt_sec, warm=routes, fleet_hint=len(routes))
+                                  reopt_sec, warm=routes, fleet_hint=len(routes), router=nucleo)
             if cand and len(cand) == len(routes) and _dual_ok(source, cand, alpha_cap):
                 cand_reports = [_pack_route(source, r, i, items_idx, variant, cache,
                                             deadline=dl_empaque, perfil=perfil)
@@ -813,12 +870,14 @@ def _solve_uniform(req: dict) -> dict:
             "acceso": _resumen_acceso(accesos, puertas),
             "acceso_rescate": rescate,
             "portafolio": bool(PORTAFOLIO and _MULTI is not None and (n - 1) >= 8),
+            "nucleo": nucleo,
             "hilos": HILOS,
             "demanda_normalizada": bool(NORMALIZAR),
         },
         "engine": {"version": ENGINE_VERSION, "perfil": perfil, "core": CORE_SHA,
                    "packer": ("extreme-point-3d/native+gravedad" if loading3d._NATIVE is not None
                               else "extreme-point-3d/python+gravedad"),
-                   "router": ("senda-portfolio/%dx%d" % (len(CONFIGS), SEMILLAS_POR_CONFIG)
-                              if PORTAFOLIO and _MULTI is not None else "senda-single")},
+                   "router": ("%s-portfolio/%dx%d" % (nucleo, len(CONFIGS2 if nucleo == "senda2" else CONFIGS),
+                                                       SEMILLAS_POR_CONFIG)
+                              if PORTAFOLIO and _MULTI is not None else "%s-single" % nucleo)},
     }
