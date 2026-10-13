@@ -3,7 +3,7 @@
 ; Los datos (mapas, base y resultados) quedan en %LOCALAPPDATA%\LATTIMEX y no se borran al desinstalar.
 
 #define AppName "LATTIMEX"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 
 [Setup]
 AppId={{6F3E2B1A-9C4D-4E7B-8A51-3D2C7F0B9E41}

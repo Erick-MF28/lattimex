@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File packaging\windows\build.ps1
 ```
 
 Requiere Python 3.10+ de python.org. Genera `dist\LATTIMEX\LATTIMEX.exe` y, si está instalado
-[Inno Setup 6](https://jrsoftware.org/isinfo.php), `dist\LATTIMEX-1.0.0-setup.exe`.
+[Inno Setup 6](https://jrsoftware.org/isinfo.php), `dist\LATTIMEX-1.1.0-setup.exe`.
 
 La misma ventana existe sin instalador: `python -m lattimex app`.
 

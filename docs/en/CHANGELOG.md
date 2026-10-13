@@ -36,11 +36,11 @@ An advance over 1.0.0: a better routing core, a new 3D packer and the integratio
   and only if a route still does not fit is it relaxed **and reported**: new `lifo_estricto` and
   `advertencias` fields in the response (besides the existing per-route `lifo_respetado`). On the 12
   product instances with all constraints, 1.0.0 returned 24 of 24 "feasible" plans without unloading
-  order; 1.1.0 returns 18 of 24 with strict order and warns on the rest.
+  order; 1.1.0 returns 19 of 24 with strict order and warns on the other 5.
 - **Fleet "up to k"** (`"fleet_mode": "up_to"`, optional): the engine may use fewer vehicles than
   available. On small instances (up to 60 deliveries and 30 boxes per vehicle) it enables **R3L**, a
   routing search that checks whether the load fits at every step: on the 19 Gendreau instances with
-  Tamke's optima, 285 of 285 valid solutions and +6.9 % distance at 30 s (1.0.0: 81 of 285 valid, +26 %).
+  Tamke's optima, 284 of 285 valid solutions and +8.1 % distance at 10 s (1.0.0: 81 of 285 valid, +26 %).
   By default the fleet stays exact, as in 1.0.0.
 - **Exact-fleet constructor fallback:** when the load barely fits in k vehicles, the 1.0.0 constructor
   could fail (11 of 41 X instances); it now assigns accepting overload and removes it with local search.

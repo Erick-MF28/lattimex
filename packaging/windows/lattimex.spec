@@ -15,7 +15,7 @@ datas += [(str(p), "lattimex/assets") for p in (PKG / "assets").iterdir()]
 
 # Dependencias de los módulos del motor (PyInstaller no analiza los archivos que viajan como datos).
 ENGINE_IMPORTS = ["array", "collections", "copy", "ctypes", "dataclasses", "hashlib", "itertools", "json",
-                  "math", "pickle", "statistics", "networkx", "numpy", "pyproj", "scipy.sparse",
+                  "math", "pickle", "random", "statistics", "networkx", "numpy", "pyproj", "scipy.sparse",
                   "scipy.sparse.csgraph"]
 hiddenimports = (collect_submodules("lattimex", filter=lambda name: not name.startswith("lattimex.engine")) + collect_submodules("scipy.sparse.csgraph")
                  + collect_submodules("networkx") + ENGINE_IMPORTS

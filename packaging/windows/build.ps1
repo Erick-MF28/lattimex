@@ -4,7 +4,7 @@
 #
 # Resultado:
 #   dist\LATTIMEX\LATTIMEX.exe          aplicación (Python, motor compilado y dependencias incluidos)
-#   dist\LATTIMEX-1.0.0-setup.exe       instalador (si está instalado Inno Setup 6)
+#   dist\LATTIMEX-1.1.0-setup.exe       instalador (si está instalado Inno Setup 6)
 #
 # Requisitos para construir: Python 3.10+ de python.org (con tkinter). El compilador de C++ se instala
 # solo (ziglang). Inno Setup 6 es opcional: https://jrsoftware.org/isinfo.php

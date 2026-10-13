@@ -35,12 +35,12 @@ se conserva sin cambios.
   primero con el orden estricto y, sólo si una ruta sigue sin caber, se relaja **y se informa**: campos
   nuevos `lifo_estricto` y `advertencias` en la respuesta (además de `lifo_respetado` por ruta, que ya
   existía). En las 12 instancias de producto con todas las restricciones, la 1.0.0 entregaba 24 de 24
-  planes "factibles" sin orden de descarga; la 1.1.0 entrega 18 de 24 con orden estricto y avisa en las
-  demás.
+  planes "factibles" sin orden de descarga; la 1.1.0 entrega 19 de 24 con orden estricto y avisa en las
+  otras 5.
 - **Flota "hasta k"** (`"fleet_mode": "up_to"`, opcional): el motor puede usar menos unidades de las
   disponibles. En instancias pequeñas (hasta 60 entregas y 30 cajas por unidad) activa **R3L**, un ruteo
   que revisa si la carga cabe en cada paso de la búsqueda: en las 19 instancias de Gendreau con
-  óptimos de Tamke, 285 de 285 soluciones válidas y +6.9 % de distancia a 30 s (1.0.0: 81 de 285 válidas,
+  óptimos de Tamke, 284 de 285 soluciones válidas y +8.1 % de distancia a 10 s (1.0.0: 81 de 285 válidas,
   +26 %). Por omisión la flota sigue siendo exacta, como en 1.0.0.
 - **Respaldo del constructor de flota exacta:** cuando la carga apenas cabe en k unidades, el constructor
   de 1.0.0 podía fallar (11 de 41 instancias X); ahora se reparte aceptando sobrecarga y se elimina con
