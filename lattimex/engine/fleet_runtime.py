@@ -189,6 +189,14 @@ def solve_fleet(req, er):
     else:
         routes, reports = [], []
 
+    # Último recurso, informado: sin orden de descarga sólo en las rutas que no caben con él.
+    relaxed = []
+    if routes and er._sin_lifo(variant) != variant:
+        for i, route in enumerate(routes):
+            if reports[i]['status'] != 'heuristic-feasible':
+                report = er._pack_route(sources[i], route, i, items, variant, cache, perfil=profile, relajar=True)
+                if report['status'] == 'heuristic-feasible':
+                    reports[i] = report; relaxed.append(i)
     feasible = (len(routes) == k and all(report['status'] == 'heuristic-feasible' for report in reports)
                 and all(capacity_ok(route, i) for i, route in enumerate(routes)))
     if routes:
@@ -213,7 +221,12 @@ def solve_fleet(req, er):
             'packing_feasible': report['status'] == 'heuristic-feasible',
             'operational_feasible': accesses[i]['factible'] if accesses[i] else None,
             'lifo_respetado': report.get('lifo_respetado', True)})
+    warnings = [{'codigo': 'orden-de-descarga-relajado', 'rutas': relaxed,
+                 'mensaje': 'Estas rutas no caben respetando el orden de descarga; su acomodo lo ignora y el '
+                            'operador tendrá que mover cajas al entregar.'}] if relaxed else []
     return {'contract': 'pen3q.lattimex.solve.v1', 'feasible': feasible, 'packing_feasible': feasible,
+        'lifo_estricto': all(r['lifo_respetado'] for r in out_routes) if feasible else None,
+        'advertencias': warnings,
         'operational_feasible': all(a['factible'] for a in accesses) if feasible and all(accesses) else None,
         'solution_status': 'feasible' if feasible else 'heuristic-unresolved',
         'vehicles': len(routes), 'total_distance_m': round(sum(r['distance_m'] for r in out_routes), 1),

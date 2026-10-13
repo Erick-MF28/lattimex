@@ -3,8 +3,11 @@
 
 Pipeline: routing SENDA2 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
 efectiva alpha*V, con escalera de alpha si la carga no cabe en la flota exacta)
--> empaque 3D por ruta (ExtremePoint3D, reinicios adaptativos, asentado por gravedad)
+-> empaque 3D por ruta en la variante pedida (P3L desde 1.1.0; respaldo: ExtremePoint3D), y todo
+   acomodo pasa por el verificador estricto (p3l_packer.verify)
 -> mediacion con flota fija (invertir/rotar rutas, reubicar clientes fallidos)
+-> solo si una ruta sigue sin caber: se relaja el orden de descarga en esa ruta y se informa
+   (advertencias, lifo_respetado=False)
 -> re-optimizacion warm-start con revalidacion de empaque.
 
 Entrada/salida: dicts JSON del contrato pen3q.lattimex.solve.v1 (ver docs/API_LOCAL.md).
@@ -21,6 +24,7 @@ from array import array
 from pathlib import Path
 
 import loading3d
+import p3l_packer
 from loading3d import ExtremePoint3D, LoadingOptions
 from contracts import options_for_variant
 from terminal_mediator import route_request, _items_by_customer
@@ -65,6 +69,8 @@ REOPT_MIN, REOPT_MAX = 0.25, 0.45
 # Escalera de capacidad efectiva: si la carga no cabe en k vehiculos con alpha*V
 # se relaja alpha por pasos hasta 1.0 antes de rechazar el trabajo.
 PASO_ALPHA = 0.10
+# P3L: tope por ruta en ms (perfil fast; thorough lo multiplica por 4), medido en paper/guia_senda2.pdf.
+P3L_MS = 50.0
 # Mediacion con flota fija: rondas y candidatos evaluados por ronda.
 MEDIACION_RONDAS = 3
 MEDIACION_CANDIDATOS = 24
@@ -428,7 +434,89 @@ def _restarts_por_tamano(n_items: int, apurado: bool, factor: float = 1.0) -> tu
 
 
 def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
-                deadline=None, perfil=None):
+                deadline=None, perfil=None, relajar=False):
+    """Empaca una ruta en la variante pedida (o sin LIFO si relajar=True).
+
+    1. P3L (native/p3l.cpp) con rotación horizontal;
+    2. si no coloca todo, el empacador de puntos extremos de 1.0.0 en la MISMA variante (puede usar
+       las 6 orientaciones de cajas sin keep_upright);
+    3. todo acomodo pasa por p3l_packer.verify (semántica de Gendreau/Krebs, incluido el caso de una
+       caja posterior encima de una anterior); si no la cumple, la ruta queda sin resolver.
+    Nunca relaja el orden de descarga por su cuenta: eso lo decide _solve_uniform al final."""
+    var_actual = _sin_lifo(variant) if relajar else variant
+    key = hashlib.sha256(repr((var_actual, tuple(route), source["vehicle"])).encode()).hexdigest()
+    cfg = PERFILES.get(perfil or "fast", PERFILES["fast"])
+    n_items = sum(len(items_idx.get(c, ())) for c in route)
+    apurado = bool(deadline and time.perf_counter() > deadline)
+    if restarts is None:
+        restarts = _restarts_por_tamano(n_items, apurado, cfg["reinicios"])
+    esfuerzo = int(max(restarts))
+    cached = cache.get(key)
+    if cached and (cached.get("status") == "heuristic-feasible" or cached.get("_esfuerzo", 0) >= esfuerzo):
+        return cached
+    veh = source["vehicle"]
+    cargo = list(veh["cargoDimensions"])
+    rank = {c: k + 1 for k, c in enumerate(route)}
+    meta = {it["id"]: it for c in route for it in items_idx.get(c, ())}
+    total_v = sum(it["volumeCm3"] for it in meta.values())
+    total_w = sum(it["weightKg"] for it in meta.values())
+    report = None
+    if p3l_packer.AVAILABLE and total_v <= float(veh["capacity"]) + 1e-6 \
+            and total_w <= float(veh["maxWeightKg"]) + 1e-6:
+        items = [{"id": it["id"], "dims": it["dimensionsCm"], "rank": rank[it["clientIndex"]], "fragile": it["fragile"]}
+                 for it in meta.values()]
+        seed = int(hashlib.sha256(repr(tuple(route)).encode()).hexdigest()[:8], 16)
+        ok, pl = p3l_packer.pack(items, cargo, var_actual, time_ms=P3L_MS * cfg["reinicios"], seed=seed)
+        if ok:
+            placements = []
+            for b in pl:
+                it = meta[b["id"]]
+                rotada = abs(b["l"] - it["dimensionsCm"][0]) > 1e-9
+                placements.append({"guideId": it["guideId"], "clientIndex": it["clientIndex"],
+                                   "trackingCode": it.get("trackingCode") or str(it["guideId"]),
+                                   "deliveryRank": rank[it["clientIndex"]],
+                                   "x": b["x"], "y": b["y"], "z": b["z"], "xCm": b["x"], "yCm": b["y"], "zCm": b["z"],
+                                   "lengthCm": b["l"], "widthCm": b["w"], "heightCm": b["h"],
+                                   "orientation": 2 if rotada else 0, "volumeCm3": it["volumeCm3"],
+                                   "weightKg": it["weightKg"], "fragile": it["fragile"], "stackable": it["stackable"]})
+            if _verificar(placements, cargo, var_actual) is None:
+                report = {"status": "heuristic-feasible", "certified": True, "totalVolumeCm3": total_v,
+                          "totalWeightKg": total_w, "physicalCapacityCm3": float(veh["capacity"]),
+                          "utilization": total_v / float(veh["capacity"]) if veh["capacity"] else 0.0,
+                          "placements": placements, "unplacedItems": [], "unplacedVolumeCm3": 0.0,
+                          "conflicts": [], "packer": "p3l"}
+    if report is None:
+        report = _pack_route_ep(source, route, index, items_idx, var_actual, {}, restarts=restarts,
+                                deadline=deadline, perfil=perfil)
+        if report.get("status") == "heuristic-feasible":
+            if report.get("variant_used") != var_actual:
+                motivo = "variante-relajada"
+            else:
+                motivo = _verificar(report.get("placements") or [], cargo, var_actual)
+            if motivo is not None:
+                report = dict(report, status="heuristic-unresolved", certified=False,
+                              conflicts=[{"reason": motivo}],
+                              unplacedItems=[{"guideId": it["guideId"], "clientIndex": it["clientIndex"],
+                                              "volumeCm3": it["volumeCm3"]} for it in meta.values()],
+                              unplacedVolumeCm3=total_v)
+        report["packer"] = "extreme-point-3d"
+    report["variant_used"] = var_actual
+    report["lifo_respetado"] = var_actual == variant
+    report["_esfuerzo"] = esfuerzo
+    cache[key] = report
+    return report
+
+
+def _verificar(placements, cargo, variant):
+    """Motivo por el que el acomodo no cumple la variante, o None."""
+    boxes = [{"x": p["x"], "y": p["y"], "z": p["z"], "l": p["lengthCm"], "w": p["widthCm"], "h": p["heightCm"],
+              "rank": p["deliveryRank"], "fragile": p.get("fragile", False)} for p in placements]
+    return p3l_packer.verify(boxes, cargo, variant)
+
+
+def _pack_route_ep(source, route, index, items_idx, variant, cache, restarts=None,
+                   deadline=None, perfil=None):
+    """Empacador de puntos extremos de la versión 1.0.0 (cadena variante -> sin LIFO)."""
     key = hashlib.sha256(repr((variant, tuple(route), source["vehicle"])).encode()).hexdigest()
     n_items = sum(len(items_idx.get(c, ())) for c in route)
     apurado = bool(deadline and time.perf_counter() > deadline)
@@ -799,6 +887,18 @@ def _solve_uniform(req: dict) -> dict:
                                              variant, cache, alpha_cap, dl_empaque, perfil)
 
     feasible = all(rep.get("status") == "heuristic-feasible" for rep in reports)
+    # Último recurso, y siempre informado: las rutas que siguen sin caber con orden de descarga se
+    # empacan sin él (lifo_respetado=False). La versión 1.0.0 lo hacía en silencio, ruta por ruta,
+    # antes de intentar la mediación.
+    relajadas = []
+    if not feasible and _sin_lifo(variant) != variant:
+        for i, rep in enumerate(reports):
+            if rep.get("status") != "heuristic-feasible":
+                rel = _pack_route(source, routes[i], i, items_idx, variant, cache, perfil=perfil, relajar=True)
+                if rel.get("status") == "heuristic-feasible":
+                    reports[i] = rel
+                    relajadas.append(i)
+        feasible = all(rep.get("status") == "heuristic-feasible" for rep in reports)
 
     # re-optimizacion warm-start (nunca empeora; solo si ya es factible). Usa lo
     # que quede del presupuesto de ruteo, con un minimo garantizado.
@@ -847,9 +947,16 @@ def _solve_uniform(req: dict) -> dict:
             "lifo_respetado": rep.get("lifo_respetado", True),
             "restricciones_aplicadas": rep.get("variant_used", variant),
         })
+    advertencias = []
+    if relajadas:
+        advertencias.append({"codigo": "orden-de-descarga-relajado", "rutas": relajadas,
+                             "mensaje": "Estas rutas no caben respetando el orden de descarga; su acomodo "
+                                        "lo ignora y el operador tendrá que mover cajas al entregar."})
     return {
         "contract": "pen3q.lattimex.solve.v1",
         "feasible": bool(feasible),
+        "lifo_estricto": all(r["lifo_respetado"] for r in out_routes) if feasible else None,
+        "advertencias": advertencias,
         "packing_feasible": bool(feasible),
         "operational_feasible": (all(a["factible"] for a in accesos)
                                  if feasible and all(accesos) else None),
@@ -875,7 +982,8 @@ def _solve_uniform(req: dict) -> dict:
             "demanda_normalizada": bool(NORMALIZAR),
         },
         "engine": {"version": ENGINE_VERSION, "perfil": perfil, "core": CORE_SHA,
-                   "packer": ("extreme-point-3d/native+gravedad" if loading3d._NATIVE is not None
+                   "packer": ("p3l+" if p3l_packer.AVAILABLE else "") +
+                             ("extreme-point-3d/native+gravedad" if loading3d._NATIVE is not None
                               else "extreme-point-3d/python+gravedad"),
                    "router": ("%s-portfolio/%dx%d" % (nucleo, len(CONFIGS2 if nucleo == "senda2" else CONFIGS),
                                                        SEMILLAS_POR_CONFIG)
