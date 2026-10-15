@@ -105,6 +105,30 @@ class RelajacionInformadaTest(unittest.TestCase):
         self.assertFalse(rel["lifo_respetado"])
 
 
+class OrdenSinExigirloTest(unittest.TestCase):
+    """Sin orden de descarga P3L colocaba las cajas sin mirar la entrega: la primera podía quedar junto
+    a la cabina y el operador tenía que apartar hasta 21 cajas (Planner, 300 entregas Qro)."""
+
+    def peticion(self, constraints):
+        coords = [(0, 0)] + [(10 * i, 0) for i in range(1, 9)]
+        M = [[float(abs(a[0] - b[0]) * 100) for b in coords] for a in coords]
+        paquetes = [{"id": f"P{i}{k}", "node": i, "dims_cm": [40, 30, 30], "weight_kg": 5}
+                    for i in range(1, 9) for k in range(3)]
+        return {"matrix_m": M, "vehicle": {"cargo_cm": [300, 150, 150], "max_weight_kg": 1000,
+                                           "doors": ["rear"]}, "fleet_count": 1,
+                "packages": paquetes, "constraints": constraints, "budget_sec": 1.0, "seed": 3}
+
+    def test_sin_lifo_igual_respeta_el_orden_si_cabe(self):
+        for c in ({"support": True, "fragility": True, "lifo": False},
+                  {"support": False, "fragility": False, "lifo": False}):
+            res = er.solve(self.peticion(c))
+            self.assertTrue(res["feasible"])
+            ruta = res["routes"][0]
+            self.assertEqual(ruta["acceso"]["movimientos_max"], 0, c)
+            orden = er._variant(c) if er._con_lifo(er._variant(c)) is None else er._con_lifo(er._variant(c))
+            self.assertIsNone(er._verificar(ruta["placements"], [300, 150, 150], orden), c)
+
+
 class R3LTest(unittest.TestCase):
     def test_hasta_k_respeta_el_orden_de_descarga(self):
         # con 2 unidades disponibles y flota "hasta k", R3L reparte el cuadro sin relajar nada

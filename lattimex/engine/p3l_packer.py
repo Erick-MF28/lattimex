@@ -22,6 +22,7 @@ EPS = 1e-6
 VARIANT_FLAGS = {  # soporte, fragilidad, LIFO
     "loading-only": (0, 0, 0), "no-support": (0, 1, 1), "no-fragility": (1, 0, 1), "no-lifo": (1, 1, 0),
     "all-constraints": (1, 1, 1), "fragility-only": (0, 1, 0), "support-only": (1, 0, 0),
+    "lifo-only": (0, 0, 1),     # interna: loading-only con orden de descarga
 }
 
 _D = ctypes.POINTER(ctypes.c_double)

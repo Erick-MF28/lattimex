@@ -201,6 +201,9 @@ def solve_fleet(req, er):
                 and all(capacity_ok(route, i) for i, route in enumerate(routes)))
     if routes:
         assert sorted(n for route in routes for n in route) == nodes
+    if feasible:
+        polished = er._pulir_orden_rutas(sources, routes, reports, items, variant)
+        relaxed = [i for i in relaxed if i not in polished]
     accesses = [er._evaluar_acceso(route, report.get('placements') or [], fleet[i].get('doors', ['rear']))
         if report['status'] == 'heuristic-feasible' else None
         for i, (route, report) in enumerate(zip(routes, reports))]

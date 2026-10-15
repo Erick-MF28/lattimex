@@ -416,6 +416,12 @@ def _sin_lifo(variant: str) -> str:
     return mapa.get(variant, "no-lifo")
 
 
+def _con_lifo(variant: str) -> str | None:
+    """La misma variante exigiendo además el orden de descarga (None si ya lo exige)."""
+    return {"no-lifo": "all-constraints", "loading-only": "lifo-only",
+            "fragility-only": "no-support", "support-only": "no-fragility"}.get(variant)
+
+
 def _restarts_por_tamano(n_items: int, apurado: bool, factor: float = 1.0) -> tuple:
     """Esfuerzo de empaque segun el tamano de la ruta y el tiempo restante.
 
@@ -442,10 +448,14 @@ def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
                 deadline=None, perfil=None, relajar=False):
     """Empaca una ruta en la variante pedida (o sin LIFO si relajar=True).
 
-    1. P3L (native/p3l.cpp) con rotación horizontal;
+    1. P3L (native/p3l.cpp) con rotación horizontal. Si la variante no exige orden de descarga, P3L
+       lo intenta de todos modos: sin él coloca las cajas sin mirar el orden de entrega y el
+       operador tendría que mover muchas en cada parada;
     2. si no coloca todo, el empacador de puntos extremos de 1.0.0 en la MISMA variante (puede usar
-       las 6 orientaciones de cajas sin keep_upright);
-    3. todo acomodo pasa por p3l_packer.verify (semántica de Gendreau/Krebs, incluido el caso de una
+       las 6 orientaciones de cajas sin keep_upright; sin LIFO acerca a la puerta lo que se entrega
+       primero);
+    3. sin LIFO y si 2 tampoco coloca todo, P3L sin orden de descarga;
+    4. todo acomodo pasa por p3l_packer.verify (semántica de Gendreau/Krebs, incluido el caso de una
        caja posterior encima de una anterior); si no la cumple, la ruta queda sin resolver.
     Nunca relaja el orden de descarga por su cuenta: eso lo decide _solve_uniform al final."""
     var_actual = _sin_lifo(variant) if relajar else variant
@@ -471,15 +481,8 @@ def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
         items = [{"id": it["id"], "dims": it["dimensionsCm"], "rank": rank[it["clientIndex"]], "fragile": it["fragile"]}
                  for it in meta.values()]
         seed = int(hashlib.sha256(repr(tuple(route)).encode()).hexdigest()[:8], 16)
-        ok, pl = p3l_packer.pack(items, cargo, var_actual, time_ms=P3L_MS * cfg["reinicios"], seed=seed)
-        if ok:
-            placements = _colocaciones_motor(pl, meta, rank)
-            if _verificar(placements, cargo, var_actual) is None:
-                report = {"status": "heuristic-feasible", "certified": True, "totalVolumeCm3": total_v,
-                          "totalWeightKg": total_w, "physicalCapacityCm3": float(veh["capacity"]),
-                          "utilization": total_v / float(veh["capacity"]) if veh["capacity"] else 0.0,
-                          "placements": placements, "unplacedItems": [], "unplacedVolumeCm3": 0.0,
-                          "conflicts": [], "packer": "p3l"}
+        report = _p3l_report(items, cargo, _con_lifo(var_actual) or var_actual, var_actual, meta, rank,
+                             P3L_MS * cfg["reinicios"], seed, total_v, total_w, veh)
     if report is None:
         report = _pack_route_ep(source, route, index, items_idx, var_actual, {}, restarts=restarts,
                                 deadline=deadline, perfil=perfil)
@@ -495,11 +498,70 @@ def _pack_route(source, route, index, items_idx, variant, cache, restarts=None,
                                               "volumeCm3": it["volumeCm3"]} for it in meta.values()],
                               unplacedVolumeCm3=total_v)
         report["packer"] = "extreme-point-3d"
+        if report.get("status") != "heuristic-feasible" and _con_lifo(var_actual) and p3l_packer.AVAILABLE                 and total_v <= float(veh["capacity"]) + 1e-6 and total_w <= float(veh["maxWeightKg"]) + 1e-6:
+            report = _p3l_report(items, cargo, var_actual, var_actual, meta, rank,
+                                 P3L_MS * cfg["reinicios"], seed, total_v, total_w, veh) or report
     report["variant_used"] = var_actual
     report["lifo_respetado"] = var_actual == variant
     report["_esfuerzo"] = esfuerzo
     cache[key] = report
     return report
+
+
+P3L_MS_ORDEN = 500.0        # último intento con orden de descarga, sólo sobre las rutas finales
+P3L_ORDEN_TOPE_S = 3.0      # tope total de ese intento por solución
+
+
+def _pulir_orden(source, route, report, items_idx, variant):
+    """Si el acomodo final de una ruta no respeta el orden de descarga (porque se relajó o porque la
+    variante no lo exige), reintenta P3L con orden y más tiempo. Devuelve el reporte nuevo o None."""
+    var_orden = variant if _sin_lifo(variant) != variant else _con_lifo(variant)
+    if not (p3l_packer.AVAILABLE and var_orden and report.get("status") == "heuristic-feasible"):
+        return None
+    veh = source["vehicle"]
+    cargo = list(veh["cargoDimensions"])
+    if _verificar(report.get("placements") or [], cargo, var_orden) is None:
+        return None
+    rank = {c: k + 1 for k, c in enumerate(route)}
+    meta = {it["id"]: it for c in route for it in items_idx.get(c, ())}
+    items = [{"id": it["id"], "dims": it["dimensionsCm"], "rank": rank[it["clientIndex"]], "fragile": it["fragile"]}
+             for it in meta.values()]
+    seed = int(hashlib.sha256(repr(tuple(route)).encode()).hexdigest()[:8], 16)
+    nuevo = _p3l_report(items, cargo, var_orden, variant, meta, rank, P3L_MS_ORDEN, seed,
+                        report.get("totalVolumeCm3") or sum(it["volumeCm3"] for it in meta.values()),
+                        report.get("totalWeightKg") or sum(it["weightKg"] for it in meta.values()), veh)
+    if nuevo is None:
+        return None
+    return dict(nuevo, variant_used=variant, lifo_respetado=True, _esfuerzo=report.get("_esfuerzo", 0))
+
+
+def _pulir_orden_rutas(sources, routes, reports, items_idx, variant):
+    """_pulir_orden sobre todas las rutas, con tope de tiempo. Devuelve los índices mejorados."""
+    fin = time.perf_counter() + P3L_ORDEN_TOPE_S
+    mejoradas = []
+    for i, (r, rep) in enumerate(zip(routes, reports)):
+        if time.perf_counter() > fin:
+            break
+        nuevo = _pulir_orden(sources[i], r, rep, items_idx, variant)
+        if nuevo is not None:
+            reports[i] = nuevo
+            mejoradas.append(i)
+    return mejoradas
+
+
+def _p3l_report(items, cargo, var_p3l, var_actual, meta, rank, time_ms, seed, total_v, total_w, veh):
+    """Acomodo P3L en var_p3l, verificado en var_actual; None si no coloca todo o no verifica."""
+    ok, pl = p3l_packer.pack(items, cargo, var_p3l, time_ms=time_ms, seed=seed)
+    if not ok:
+        return None
+    placements = _colocaciones_motor(pl, meta, rank)
+    if _verificar(placements, cargo, var_actual) is not None:
+        return None
+    return {"status": "heuristic-feasible", "certified": True, "totalVolumeCm3": total_v,
+            "totalWeightKg": total_w, "physicalCapacityCm3": float(veh["capacity"]),
+            "utilization": total_v / float(veh["capacity"]) if veh["capacity"] else 0.0,
+            "placements": placements, "unplacedItems": [], "unplacedVolumeCm3": 0.0,
+            "conflicts": [], "packer": "p3l" if var_p3l == var_actual else "p3l-con-orden"}
 
 
 def _colocaciones_motor(pl, meta, rank):
@@ -1017,6 +1079,9 @@ def _solve_uniform(req: dict) -> dict:
         else:
             reopt_sec = 0.0
 
+    if feasible:
+        pulidas = _pulir_orden_rutas([source] * len(routes), routes, reports, items_idx, variant)
+        relajadas = [i for i in relajadas if i not in pulidas]
     puertas = req["vehicle"].get("doors") or ["rear"]
     accesos = [_evaluar_acceso(r, rep.get("placements") or [], puertas)
                if rep.get("status") == "heuristic-feasible" else None
