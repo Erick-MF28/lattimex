@@ -4,6 +4,7 @@
 
 Español · [English](README.en.md)
 
+[![Versión](https://img.shields.io/github/v/release/Erick-MF28/lattimex?label=versi%C3%B3n&color=2747d9)](https://github.com/Erick-MF28/lattimex/releases/latest)
 [![Licencia: MIT](https://img.shields.io/badge/motor-MIT-2747d9)](LICENSE)
 [![Web](https://img.shields.io/badge/web-lattimex.com-0d1628)](https://lattimex.com)
 [![Planner](https://img.shields.io/badge/Planner-lattimex.com%2Fplanner-f59e0b)](https://lattimex.com/planner)
@@ -17,6 +18,17 @@ que usted ejecuta: **sus datos nunca salen de su computadora**.
 [![LATTIMEX: menos kilómetros, mejor carga, la flota necesaria](docs/img/lattimex-web.jpg)](https://lattimex.com)
 
 <p align="center"><a href="https://lattimex.com"><b>Conozca LATTIMEX en lattimex.com →</b></a></p>
+
+> **Versión actual: 1.1.0** (motor `lattimex-engine-1.7.0`). Novedades frente a la 1.0.0:
+> - **SENDA2**, un núcleo de ruteo mejor: a +0.33 puntos de gap de HGS-CVRP en las instancias X y a
+>   +0.07 en A/B/E, con el mismo reloj.
+> - **P3L**, un acomodador 3D nuevo que coloca más cargas válidas, con orden de descarga estricto y verificado.
+> - **Avisos claros:** si una ruta no cabe respetando el orden de descarga, el motor lo informa en vez
+>   de relajarlo en silencio.
+>
+> Detalles en el [registro de cambios](CHANGELOG.md) y en la [guía de SENDA2](paper/guia_senda2.pdf).
+> Para saber qué versión tiene instalada: `python -m lattimex --version`. La 1.0.0 sigue disponible
+> en la etiqueta [`v1.0.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.0.0).
 
 ## Pruébelo en cinco minutos
 

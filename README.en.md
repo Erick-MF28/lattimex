@@ -4,6 +4,7 @@
 
 [Español](README.md) · English
 
+[![Version](https://img.shields.io/github/v/release/Erick-MF28/lattimex?label=version&color=2747d9)](https://github.com/Erick-MF28/lattimex/releases/latest)
 [![License: MIT](https://img.shields.io/badge/engine-MIT-2747d9)](LICENSE)
 [![Web](https://img.shields.io/badge/web-lattimex.com-0d1628)](https://lattimex.com)
 [![Planner](https://img.shields.io/badge/Planner-lattimex.com%2Fplanner-f59e0b)](https://lattimex.com/planner)
@@ -17,6 +18,17 @@ engine you run yourself: **your data never leaves your computer**.
 [![LATTIMEX: fewer kilometers, better loading, only the fleet you need](docs/img/lattimex-web.jpg)](https://lattimex.com)
 
 <p align="center"><a href="https://lattimex.com"><b>Discover LATTIMEX at lattimex.com →</b></a></p>
+
+> **Current version: 1.1.0** (engine `lattimex-engine-1.7.0`). New since 1.0.0:
+> - **SENDA2**, a better routing core: +0.33 gap points from HGS-CVRP on the X instances and +0.07 on
+>   A/B/E, under the same clock.
+> - **P3L**, a new 3D packer that produces more valid loads, with strict, verified unloading order.
+> - **Clear warnings:** if a route does not fit under the unloading order, the engine reports it instead
+>   of relaxing it silently.
+>
+> Details in the [changelog](docs/en/CHANGELOG.md) and the [SENDA2 guide](paper/senda2_guide_en.pdf).
+> To check which version you have installed: `python -m lattimex --version`. Version 1.0.0 is still
+> available under the [`v1.0.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.0.0) tag.
 
 ## Try it in five minutes
 
