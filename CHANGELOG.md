@@ -1,6 +1,6 @@
 # Cambios
 
-## 1.1.0 — pendiente de publicar
+## 1.1.0 — 23 de octubre de 2026
 
 Avance sobre la 1.0.0: un núcleo de ruteo mejor, un acomodador 3D nuevo y la integración de ambos. La
 versión 1.0.0 sigue disponible en su etiqueta `v1.0.0`. Las mediciones están en la guía nueva,
@@ -23,7 +23,7 @@ se conserva sin cambios.
   reparaciones que no caben y tope de pulido de 0.02 s por nuevo mejor. Con menos de 6 entregas por
   unidad el motor usa el núcleo SENDA de 1.0.0 (`native/senda_core.cpp`), que fue mejor ahí. Se puede
   forzar con `"router": "senda2" | "senda"` en la petición o `LATTIMEX_ROUTER`.
-- **Acomodador P3L por omisión** (`native/p3l.cpp`). Con las rutas óptimas de Tamke et al. (2025), que se
+- **Acomodador P3L por omisión** (`native/p3l.cpp`). Con las rutas óptimas de Tamke et al. (2026), que se
   sabe que caben, el empacador de 1.0.0 rechazaba entre 34 % y 61 % según la variante; P3L, entre 24 % y
   36 %. En rutas de producto de 60–97 cajas con todas las restricciones, de al menos 71 % a al menos
   15 % (4 % si se le dan 500 ms por ruta). Si P3L no coloca todo, se intenta el empacador de 1.0.0 en la misma variante.

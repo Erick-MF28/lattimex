@@ -169,7 +169,7 @@ repetir las mediciones en su computadora. Versión en inglés:
 
 La segunda guía, [**paper/guia_senda2.pdf**](paper/guia_senda2.pdf) (versión 1.1.0), cuenta el avance
 con la misma línea: SENDA2 frente a HGS-CVRP y FILO2, cómo se midió un acomodador contra los óptimos
-publicados de Tamke et al. (2025), qué defectos de la versión 1.0.0 destapó esa medición y cómo se
+publicados de Tamke et al. (2026), qué defectos de la versión 1.0.0 destapó esa medición y cómo se
 integraron ruteo y acomodo. Versión en inglés: [paper/senda2_guide_en.pdf](paper/senda2_guide_en.pdf). Los programas usados para comparar no forman parte de este
 repositorio; las notas y referencias están en [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 

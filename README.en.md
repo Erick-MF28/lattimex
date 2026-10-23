@@ -171,7 +171,7 @@ ends with a section for repeating the measurements on your computer. The Spanish
 
 The second guide, [**paper/senda2_guide_en.pdf**](paper/senda2_guide_en.pdf) (version 1.1.0), reports
 the advance in the same spirit: SENDA2 against HGS-CVRP and FILO2, how a packer was measured against the
-published optima of Tamke et al. (2025), which 1.0.0 defects that measurement uncovered and how routing
+published optima of Tamke et al. (2026), which 1.0.0 defects that measurement uncovered and how routing
 and packing were integrated. Spanish original: [paper/guia_senda2.pdf](paper/guia_senda2.pdf). The
 programs used for comparison are not part of this repository; notes and references are in [docs/en/ACADEMIC_NOTES.md](docs/en/ACADEMIC_NOTES.md).
 

@@ -16,7 +16,7 @@ cada paso, si la carga cabe:
 
 Escala: cada revisión re-acomoda la ruta completa. Con rutas de hasta ~30 cajas cuesta ~0.3 ms; con
 60-75 cajas, 15-300 ms. Por eso el motor sólo usa R3L con pocas entregas (ver engine_runtime).
-Mediciones (19 instancias de Gendreau contra los óptimos de Tamke et al. 2025): paper/guia_senda2.pdf.
+Mediciones (19 instancias de Gendreau contra los óptimos de Tamke et al. 2026): paper/guia_senda2.pdf.
 """
 from __future__ import annotations
 

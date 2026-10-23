@@ -1,6 +1,6 @@
 # Changes
 
-## 1.1.0 — not yet released
+## 1.1.0 — October 23, 2026
 
 An advance over 1.0.0: a better routing core, a new 3D packer and the integration of both. Version
 1.0.0 remains available at its `v1.0.0` tag. The measurements are in the new guide,
@@ -23,7 +23,7 @@ An advance over 1.0.0: a better routing core, a new 3D packer and the integratio
   do not fit, and a 0.02 s polish cap per new best. With fewer than 6 deliveries per vehicle the engine
   uses the 1.0.0 SENDA core (`native/senda_core.cpp`), which was better there. It can be forced with
   `"router": "senda2" | "senda"` in the request or `LATTIMEX_ROUTER`.
-- **P3L packer by default** (`native/p3l.cpp`). On the optimal routes of Tamke et al. (2025), which are
+- **P3L packer by default** (`native/p3l.cpp`). On the optimal routes of Tamke et al. (2026), which are
   known to fit, the 1.0.0 packer rejected 34 % to 61 % depending on the variant; P3L, 24 % to 36 %. On
   product routes of 60–97 boxes with all constraints, from at least 71 % to at least 15 % (4 % when given
   500 ms per route). If P3L does not
