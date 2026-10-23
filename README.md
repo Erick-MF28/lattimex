@@ -49,8 +49,8 @@ python -m lattimex serve --data D:\operaciones\cliente_a
 
 `python -m lattimex doctor` revisa la instalación y `python -m lattimex probe` imprime la huella
 determinista del motor. Depende de la biblioteca estándar de C++ con la que se compiló. Versión
-1.1.0: `1102c21c0192b381` con zig/libc++ (el instalador de Windows y `pip install ziglang`); la huella con
-g++/libstdc++ (Linux y MinGW) la publica el CI del repositorio en cada versión. Si su compilación da la
+1.1.0: `1102c21c0192b381` con zig/libc++ (el instalador de Windows y `pip install ziglang`) y
+`78f0de0f9d88d82b` con g++/libstdc++ (Linux y MinGW; el CI del repositorio la publica en cada versión). Si su compilación da la
 huella de su biblioteca, calcula exactamente lo mismo que el motor publicado. Las huellas de la versión
 1.0.0 eran `6457b2dd44660773` (zig/libc++) y `285bf1758e5dd6a1` (g++/libstdc++); desde 1.1.0 la huella
 incluye la versión del motor, así que no coincide con la de ninguna otra versión.

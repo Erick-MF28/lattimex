@@ -50,8 +50,8 @@ python -m lattimex serve --data D:\operations\customer_a
 
 `python -m lattimex doctor` checks the installation and `python -m lattimex probe` prints the
 engine's deterministic fingerprint. It depends on the C++ standard library used to build it. Version
-1.1.0: `1102c21c0192b381` with zig/libc++ (the Windows installer and `pip install ziglang`); the g++/libstdc++
-fingerprint (Linux and MinGW) is published by the repository's CI for every version. If your build gives
+1.1.0: `1102c21c0192b381` with zig/libc++ (the Windows installer and `pip install ziglang`), and
+`78f0de0f9d88d82b` with g++/libstdc++ (Linux and MinGW; the repository's CI publishes it for every version). If your build gives
 the fingerprint of its library, it computes exactly what the published engine computes. Version 1.0.0
 fingerprints were `6457b2dd44660773` (zig/libc++) and `285bf1758e5dd6a1` (g++/libstdc++); since 1.1.0
 the fingerprint includes the engine version, so it never matches another version's.

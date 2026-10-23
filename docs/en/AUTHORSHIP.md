@@ -52,7 +52,7 @@ name. The published ideas that the engine implements are cited in
 | SHA-256 of `native/p3l.cpp` (LF line endings) | `afb81b4cd9ddf3d145a58941267840ee649f11392079b535acdd012df48050ba` |
 | `native/senda_core.cpp` and `native/pack3d.cpp` | unchanged from 1.0.0 (fingerprints below) |
 | Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `1102c21c0192b381` (4 routes, 8 857 m, 3 000 iterations) |
-| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | published by the repository's CI |
+| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | `78f0de0f9d88d82b` (4 routes, 8 857 m, 3 000 iterations; published by the CI) |
 
 Textual comparison of the files new in 1.1.0 (`senda2_core.cpp` in what it adds to `senda_core.cpp`,
 `p3l.cpp`, `p3l_packer.py`, `r3l.py`, `exact_fleet_repair.py`, `cvrp.py`), with the same methodology,

@@ -52,7 +52,7 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 | SHA-256 de `native/p3l.cpp` (finales de línea LF) | `afb81b4cd9ddf3d145a58941267840ee649f11392079b535acdd012df48050ba` |
 | `native/senda_core.cpp` y `native/pack3d.cpp` | sin cambios respecto de 1.0.0 (huellas abajo) |
 | Huella determinista con zig/libc++ (`python -m lattimex probe`) | `1102c21c0192b381` (4 rutas, 8 857 m, 3 000 iteraciones) |
-| Huella determinista con g++/libstdc++ (Linux, MinGW) | la publica el CI del repositorio |
+| Huella determinista con g++/libstdc++ (Linux, MinGW) | `78f0de0f9d88d82b` (4 rutas, 8 857 m, 3 000 iteraciones; publicada por el CI) |
 
 Comparación textual de los archivos nuevos de 1.1.0 (`senda2_core.cpp` en lo que agrega a
 `senda_core.cpp`, `p3l.cpp`, `p3l_packer.py`, `r3l.py`, `exact_fleet_repair.py`, `cvrp.py`), con la
