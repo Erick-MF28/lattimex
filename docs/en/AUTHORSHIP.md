@@ -50,8 +50,8 @@ name. The published ideas that the engine implements are cited in
 | Engine version | lattimex-engine-1.8.0 |
 | SHA-256 of `native/senda3_core.cpp` (LF line endings) | `2bdf9c1a19160a7acaff03ef1edb11a726c370377865993c463c596cf888b515` |
 | `native/senda2_core.cpp`, `native/p3l.cpp`, `native/senda_core.cpp` and `native/pack3d.cpp` | unchanged (hashes below) |
-| Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `f96302436914b57d` (4 rutas, 8 857 m, 3 000 iteraciones) |
-| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | published by the repository's CI |
+| Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `f96302436914b57d` (4 routes, 8,857 m, 3,000 iterations) |
+| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | `fb7317df831e8588` (4 routes, 8,857 m, 3,000 iterations; published by the CI) |
 
 Textual comparison of what 1.2.0 adds (`senda3_core.cpp` in what it adds to `senda2_core.cpp`, and the
 changes to `cvrp.py`), with the same methodology, reviewed in November 2026: 0 identical lines with

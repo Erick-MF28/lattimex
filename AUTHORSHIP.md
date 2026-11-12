@@ -51,7 +51,7 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 | SHA-256 de `native/senda3_core.cpp` (finales de línea LF) | `2bdf9c1a19160a7acaff03ef1edb11a726c370377865993c463c596cf888b515` |
 | `native/senda2_core.cpp`, `native/p3l.cpp`, `native/senda_core.cpp` y `native/pack3d.cpp` | sin cambios (huellas abajo) |
 | Huella determinista con zig/libc++ (`python -m lattimex probe`) | `f96302436914b57d` (4 rutas, 8 857 m, 3 000 iteraciones) |
-| Huella determinista con g++/libstdc++ (Linux, MinGW) | la publica el CI del repositorio |
+| Huella determinista con g++/libstdc++ (Linux, MinGW) | `fb7317df831e8588` (4 rutas, 8 857 m, 3 000 iteraciones; publicada por el CI) |
 
 Comparación textual de lo que 1.2.0 agrega (`senda3_core.cpp` en lo que suma a `senda2_core.cpp`, y los
 cambios de `cvrp.py`), con la misma metodología, revisada en noviembre de 2026: 0 líneas idénticas con
