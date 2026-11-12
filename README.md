@@ -19,7 +19,13 @@ que usted ejecuta: **sus datos nunca salen de su computadora**.
 
 <p align="center"><a href="https://lattimex.com"><b>Conozca LATTIMEX en lattimex.com →</b></a></p>
 
-> **Versión actual: 1.1.0** (motor `lattimex-engine-1.7.0`). Novedades frente a la 1.0.0:
+> **Versión actual: 1.2.0** (motor `lattimex-engine-1.8.0`). Novedad: **SENDA3**, el núcleo de ruteo para
+> problemas grandes. Con el mismo reloj y un solo hilo, en el banco X a 4 s queda a 0.79 % de la mejor
+> solución conocida (SENDA2: 2.03 %; HGS-CVRP: 1.78 %; FILO2: 0.78 %) y resuelve mil puntos en segundos.
+> Con menos de 125 nodos sigue corriendo SENDA2, y bajo 200 nodos HGS-CVRP sigue por delante. El Planner
+> se usa igual: sólo cambia el motor. Detalles en la [guía de SENDA3](paper/guia_senda3.pdf).
+>
+> De la 1.1.0 se conservan:
 > - **SENDA2**, un núcleo de ruteo mejor: a +0.33 puntos de gap de HGS-CVRP en las instancias X y a
 >   +0.07 en A/B/E, con el mismo reloj.
 > - **P3L**, un acomodador 3D nuevo que coloca más cargas válidas, con orden de descarga estricto y verificado.
@@ -28,7 +34,8 @@ que usted ejecuta: **sus datos nunca salen de su computadora**.
 >
 > Detalles en el [registro de cambios](CHANGELOG.md) y en la [guía de SENDA2](paper/guia_senda2.pdf).
 > Para saber qué versión tiene instalada: `python -m lattimex --version`. La 1.0.0 sigue disponible
-> en la etiqueta [`v1.0.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.0.0).
+> en la etiqueta [`v1.0.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.0.0) y la 1.1.0 en
+> [`v1.1.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.1.0).
 
 ## Pruébelo en cinco minutos
 
@@ -61,28 +68,30 @@ python -m lattimex serve --data D:\operaciones\cliente_a
 
 `python -m lattimex doctor` revisa la instalación y `python -m lattimex probe` imprime la huella
 determinista del motor. Depende de la biblioteca estándar de C++ con la que se compiló. Versión
-1.1.0: `1102c21c0192b381` con zig/libc++ (el instalador de Windows y `pip install ziglang`) y
-`78f0de0f9d88d82b` con g++/libstdc++ (Linux y MinGW; el CI del repositorio la publica en cada versión). Si su compilación da la
+1.2.0: `f96302436914b57d` con zig/libc++ (el instalador de Windows y `pip install ziglang`); la de
+g++/libstdc++ (Linux y MinGW) la publica el CI del repositorio en cada versión. Si su compilación da la
 huella de su biblioteca, calcula exactamente lo mismo que el motor publicado. Las huellas de la versión
-1.0.0 eran `6457b2dd44660773` (zig/libc++) y `285bf1758e5dd6a1` (g++/libstdc++); desde 1.1.0 la huella
-incluye la versión del motor, así que no coincide con la de ninguna otra versión.
+1.1.0 eran `1102c21c0192b381` (zig/libc++) y `78f0de0f9d88d82b` (g++/libstdc++), y las de la 1.0.0,
+`6457b2dd44660773` y `285bf1758e5dd6a1`; desde 1.1.0 la huella incluye la versión del motor, así que no
+coincide con la de ninguna otra versión.
 
 ## Tres formas de usar el motor
 
 Desde la versión 1.1.0 cada pieza se puede probar por separado:
 
 ```bash
-python -m lattimex cvrp X-n101-k25.vrp --time 4     # SENDA2 solo, CVRP clásico (archivos de CVRPLIB)
+python -m lattimex cvrp X-n1001-k43.vrp --time 4    # SENDA3 solo, CVRP clásico (archivos de CVRPLIB)
 python -m lattimex pack cajas.json                  # el acomodador 3D solo, para una ruta
 python -m lattimex serve                            # el motor completo, para el Planner
 ```
 
-- **SENDA2 solo** reparte el tiempo y verifica cada solución como en la comparación de la guía 2:
-  frente a HGS-CVRP, +0.33 puntos de gap en 41 instancias X (4 s) y +0.07 en A/B/E (2 s, flota fija).
+- **SENDA3 solo** elige el algoritmo por tamaño y verifica cada solución como en la comparación de la
+  guía 3: frente a HGS-CVRP, −0.99 puntos de gap en 97 instancias X (4 s) y +0.06 en 61 A/B/E (2 s, flota
+  fija). Con `--router senda2` o `--router senda` corre los núcleos de las versiones anteriores.
 - **El acomodador solo** (P3L) recibe un JSON con el contenedor y las cajas (`stop` = orden de
   entrega) y devuelve la posición de cada caja y si el acomodo cumple soporte, fragilidad y orden de
   descarga.
-- **El motor completo** rutea con SENDA2, acomoda con P3L respetando el orden de descarga y, si una
+- **El motor completo** rutea con SENDA3, acomoda con P3L respetando el orden de descarga y, si una
   ruta no cabe así, lo dice en la respuesta (`lifo_estricto`, `advertencias`). Con
   `"fleet_mode": "up_to"` puede usar menos unidades de las disponibles.
 
@@ -173,17 +182,21 @@ publicados de Tamke et al. (2026), qué defectos de la versión 1.0.0 destapó e
 integraron ruteo y acomodo. Versión en inglés: [paper/senda2_guide_en.pdf](paper/senda2_guide_en.pdf). Los programas usados para comparar no forman parte de este
 repositorio; las notas y referencias están en [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 
+La tercera guía, [**paper/guia_senda3.pdf**](paper/guia_senda3.pdf) (versión 1.2.0), explica por qué SENDA2
+no escalaba, cómo funciona el bucle de SENDA3 y por qué el motor elige el algoritmo según el tamaño, y lo
+mide contra SENDA2, HGS-CVRP y FILO2 con presupuestos de segundos, incluido lo que no le favorece.
+
 ## Qué hay en este repositorio
 
 | Carpeta | Contenido |
 |---|---|
-| `native/` | Núcleos de ruteo SENDA2 (`senda2_core.cpp`, por omisión) y SENDA (`senda_core.cpp`, versión 1.0.0); acomodadores 3D P3L (`p3l.cpp`, por omisión) y de puntos extremos (`pack3d.cpp`, versión 1.0.0) |
+| `native/` | Núcleos de ruteo SENDA3 (`senda3_core.cpp`, por omisión), SENDA2 (`senda2_core.cpp`, versión 1.1.0) y SENDA (`senda_core.cpp`, versión 1.0.0); acomodadores 3D P3L (`p3l.cpp`, por omisión) y de puntos extremos (`pack3d.cpp`, versión 1.0.0) |
 | `lattimex/engine/` | Tubería del motor: capacidad efectiva, empaque 3D y verificador estricto, mediación con flota fija, R3L (flota "hasta k" en instancias pequeñas), plan de descarga por puertas |
-| `lattimex/cvrp.py` | SENDA2 solo sobre archivos de CVRPLIB (`python -m lattimex cvrp`) |
+| `lattimex/cvrp.py` | SENDA3 solo (o SENDA2, o SENDA) sobre archivos de CVRPLIB (`python -m lattimex cvrp`) |
 | `lattimex/server.py` | Servidor local para el Planner (solo escucha en 127.0.0.1) |
 | `lattimex/maps.py` | Construcción del mapa propio desde OpenStreetMap |
 | `tests/` | Pruebas del motor, equivalencia C++/Python del empacador y pruebas del servidor |
-| `paper/` | Guías educativas 1 (SENDA, 1.0.0) y 2 (SENDA2 y carga 3D, 1.1.0), en español y en inglés (LaTeX y PDF) |
+| `paper/` | Guías educativas 1 (SENDA, 1.0.0) y 2 (SENDA2 y carga 3D, 1.1.0), en español y en inglés, y 3 (SENDA3, 1.2.0), en español (LaTeX y PDF) |
 | `packaging/windows/` | Aplicación e instalador de Windows (ventana de inicio sin terminal) |
 | `docs/` | Arquitectura, conexión con el Planner, seguridad, mapas, API local y notas académicas (`docs/en/` en inglés) |
 

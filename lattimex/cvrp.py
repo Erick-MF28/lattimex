@@ -25,6 +25,11 @@ from pathlib import Path
 from . import native
 
 INTERNAL_SHARE = 0.8
+# SENDA3 (desde 1.2.0): selector por tamaño. Con menos de SENDA3_UMBRAL nodos (clientes + depósito) corre
+# SENDA2 con el protocolo de arriba; desde el umbral, una sola trayectoria del bucle de cadenas vecinas.
+# Si SENDA2 termina sin solución válida (flota fija apretada), el bucle usa lo que queda de la pared.
+SENDA3_UMBRAL = 125
+SENDA3_RESPALDO_MARGEN, SENDA3_RESPALDO_MIN = 0.05, 0.15
 
 _BASE = {"k": 15, "use_segment": 1, "use_swapstar": 1, "use_penalty": 0, "destroy_min": 0.10,
          "destroy_max": 0.35, "cand_ls_budget": 0.08, "best_polish_budget": 0.15, "polish_mode": 3,
@@ -169,7 +174,7 @@ def _extra_config(f: dict) -> str:
 def _lib(router: str):
     native.configure()
     import os  # noqa: PLC0415
-    path = os.environ.get("LATTIMEX_CORE2" if router == "senda2" else "LATTIMEX_CORE")
+    path = os.environ.get({"senda2": "LATTIMEX_CORE2", "senda3": "LATTIMEX_CORE3"}.get(router, "LATTIMEX_CORE"))
     if not path:
         raise RuntimeError("Núcleo no compilado: ejecute `python -m lattimex build`")
     lib = ctypes.CDLL(path)
@@ -179,11 +184,93 @@ def _lib(router: str):
     fn.argtypes = [ctypes.c_int, F64, F64, I32, I32, ctypes.c_int, ctypes.c_int, ctypes.c_int, I32, ctypes.c_int, I32,
                    ctypes.c_int, U64, ctypes.c_int, I32, I32, I32, I32, I64, I32, I32, I32, F64, F64, F64, F64, I64,
                    ctypes.c_int, ctypes.c_int, ctypes.c_double, I32, ctypes.c_int, I64]
+    if router == "senda3":
+        lib.senda3_set_mode.argtypes = [ctypes.c_int]
+        lib.senda3_set_mode.restype = None
+        fn.set_mode = lib.senda3_set_mode
     return fn
 
 
-def solve(inst: Instance, time_sec: float = 4.0, seed: int = 1, fleet: str = "free", router: str = "senda2") -> dict:
-    """Resuelve una instancia. fleet = 'free' (rutas ilimitadas) o 'fixed' (a lo sumo k rutas)."""
+def _trayectoria_senda3(inst: Instance, time_sec: float, seed: int, fleet: str) -> dict:
+    """Una trayectoria del bucle S3 (k = 25, sin penalización), verificada en Python."""
+    started = time.perf_counter()
+    fn = _lib("senda3")
+    size = max([inst.depot, *inst.customers]) + 1
+    xs, ys = array("d", [0.0] * size), array("d", [0.0] * size)
+    for v, (x, y) in inst.coords.items():
+        xs[v], ys[v] = x, y
+    dem = array("i", [0] * size)
+    for v, d in inst.demands.items():
+        if v < size:
+            dem[v] = d
+    custs = array("i", inst.customers)
+    fixed = fleet == "fixed"
+    k_max = inst.vehicle_count if fixed else -1
+    out_cap = 4 * size + 16
+    out = array("i", [0] * out_cap)
+    info = (ctypes.c_int64 * 10)()
+    init = array("i", [-2])
+    c = lambda t, v: (t * len(v))(*v)
+    internal_seed = (zlib.crc32(inst.name.encode()) ^ (seed & 0xFFFFFFFF)) & 0x7FFFFFFF
+    fn.set_mode(1)                                    # fuerza el bucle S3 sin importar el tamaño
+    try:
+        rc = fn(size, (ctypes.c_double * size).from_buffer(xs), (ctypes.c_double * size).from_buffer(ys),
+                ctypes.POINTER(ctypes.c_int32)(), (ctypes.c_int32 * size).from_buffer(dem), inst.capacity, inst.depot,
+                int(k_max), (ctypes.c_int32 * len(custs)).from_buffer(custs), len(custs),
+                (ctypes.c_int32 * 1).from_buffer(init), 0, c(ctypes.c_uint64, [internal_seed]), 1,
+                c(ctypes.c_int32, [min(25, max(1, len(custs) - 1))]), c(ctypes.c_int32, [7 if fixed else 3]),
+                c(ctypes.c_int32, [0]), c(ctypes.c_int32, [0]), c(ctypes.c_int64, [5000]), c(ctypes.c_int32, [3]),
+                c(ctypes.c_int32, [2]), c(ctypes.c_int32, [50]), c(ctypes.c_double, [0.10]), c(ctypes.c_double, [0.35]),
+                c(ctypes.c_double, [0.08]), c(ctypes.c_double, [0.15]), c(ctypes.c_int64, [5000 if fixed else 0]), 0, 1,
+                float(max(0.001, time_sec * INTERNAL_SHARE)), (ctypes.c_int32 * out_cap).from_buffer(out), out_cap, info)
+    finally:
+        fn.set_mode(-1)                               # vuelve al selector por tamaño de la biblioteca
+    if rc != 0:
+        raise RuntimeError(f"senda_solve_multi_es rc={rc}")
+    routes, cur = [], []
+    for i in range(int(info[0])):
+        v = out[i]
+        if v == -2:
+            break
+        if v == -1:
+            if cur:
+                routes.append(cur)
+            cur = []
+        else:
+            cur.append(v)
+    if cur:
+        routes.append(cur)
+    ok = bool(routes) and _verify(inst, routes, k_max)
+    cost = inst.cost(routes) if routes else None
+    return {"instance": inst.name, "router": "senda3", "fleet": fleet, "seed": seed, "time_sec": time_sec,
+            "verified": ok, "cost": cost if ok else None, "routes": routes if ok else [],
+            "arms": [{"config": "s3_cadenas", "penalty": 0, "verified": ok, "cost": cost, "iterations": int(info[1])}],
+            "wall_sec": round(time.perf_counter() - started, 3)}
+
+
+def _solve_senda3(inst: Instance, time_sec: float, seed: int, fleet: str) -> dict:
+    started = time.perf_counter()
+    if len(inst.customers) + 1 >= SENDA3_UMBRAL:
+        res, core = _trayectoria_senda3(inst, time_sec, seed, fleet), "s3"
+    else:
+        res, core = solve(inst, time_sec=time_sec, seed=seed, fleet=fleet, router="senda2"), "senda2"
+        if not res["verified"]:
+            left = time_sec - (time.perf_counter() - started) - SENDA3_RESPALDO_MARGEN
+            if left >= SENDA3_RESPALDO_MIN:
+                arms = res["arms"]
+                res = _trayectoria_senda3(inst, left, seed, fleet)
+                res["arms"] = arms + res["arms"]
+                res["time_sec"] = time_sec
+                core = "senda2>s3"
+    res.update(router="senda3", core=core, wall_sec=round(time.perf_counter() - started, 3))
+    return res
+
+
+def solve(inst: Instance, time_sec: float = 4.0, seed: int = 1, fleet: str = "free", router: str = "senda3") -> dict:
+    """Resuelve una instancia. fleet = 'free' (rutas ilimitadas) o 'fixed' (a lo sumo k rutas).
+    router = 'senda3' (por omisión desde 1.2.0: selector por tamaño), 'senda2' (1.1.0) o 'senda' (1.0.0)."""
+    if router == "senda3":
+        return _solve_senda3(inst, time_sec, seed, fleet)
     started = time.perf_counter()
     fn = _lib(router)
     size = max([inst.depot, *inst.customers]) + 1

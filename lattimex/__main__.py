@@ -8,7 +8,7 @@
   python -m lattimex app                            ventana de inicio (sin terminal)
   python -m lattimex doctor                         revisa la instalación
   python -m lattimex probe                          huella determinista del motor
-  python -m lattimex cvrp X-n101-k25.vrp --time 4   SENDA2 solo, sobre un archivo de CVRPLIB
+  python -m lattimex cvrp X-n101-k25.vrp --time 4   SENDA3 solo, sobre un archivo de CVRPLIB
   python -m lattimex pack cajas.json                acomodador 3D solo (P3L), para una ruta
   python -m lattimex sample --n 60 > entregas.csv   entregas sintéticas para probar
 
@@ -116,7 +116,7 @@ def cmd_probe(args):
 
 
 def cmd_cvrp(args):
-    """SENDA2 solo sobre una instancia de CVRPLIB (paper/guia_senda2.pdf, sección 2)."""
+    """SENDA3 (o SENDA2, o SENDA) solo sobre una instancia de CVRPLIB (paper/guia_senda3.pdf)."""
     from . import cvrp  # noqa: PLC0415
     inst = cvrp.read_cvrplib(args.instance)
     res = cvrp.solve(inst, time_sec=args.time, seed=args.seed, fleet=args.fleet, router=args.router)
@@ -124,6 +124,8 @@ def cmd_cvrp(args):
         cvrp.write_solution(args.sol, res)
     resumen = {k: res[k] for k in ("instance", "router", "fleet", "seed", "time_sec", "verified", "cost", "wall_sec")}
     resumen["routes"] = len(res["routes"])
+    if "core" in res:                       # senda3: qué algoritmo eligió el selector
+        resumen["core"] = res["core"]
     if args.bks:
         resumen["gap_pct"] = round(100 * (res["cost"] / args.bks - 1), 4) if res["verified"] else None
     print(json.dumps(resumen, ensure_ascii=False))
@@ -208,11 +210,12 @@ def main(argv=None):
     sub.add_parser("app", help="ventana de inicio: servidor, mapa y Planner sin terminal").set_defaults(fn=cmd_app)
     pr = sub.add_parser("probe", help="huella determinista del motor")
     pr.add_argument("--iters", type=int, default=3000); pr.set_defaults(fn=cmd_probe)
-    cv = sub.add_parser("cvrp", help="SENDA2 solo sobre un archivo de CVRPLIB (.vrp)")
+    cv = sub.add_parser("cvrp", help="SENDA3 solo sobre un archivo de CVRPLIB (.vrp)")
     cv.add_argument("instance"); cv.add_argument("--time", type=float, default=4.0, help="segundos (80 %% internos)")
     cv.add_argument("--seed", type=int, default=1)
     cv.add_argument("--fleet", choices=["free", "fixed"], default="free", help="fixed: a lo sumo k rutas (-kNN)")
-    cv.add_argument("--router", choices=["senda2", "senda"], default="senda2", help="senda = núcleo de 1.0.0")
+    cv.add_argument("--router", choices=["senda3", "senda2", "senda"], default="senda3",
+                    help="senda3 = núcleo actual (selector por tamaño); senda2 = el de 1.1.0; senda = el de 1.0.0")
     cv.add_argument("--sol", help="escribe la solución en formato CVRPLIB")
     cv.add_argument("--bks", type=float, help="mejor solución conocida, para imprimir el gap")
     cv.set_defaults(fn=cmd_cvrp)

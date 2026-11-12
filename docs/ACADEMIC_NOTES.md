@@ -15,6 +15,8 @@ quiera validar resultados puede reproducirlos en su computadora con las instrucc
 | Infactibilidad penalizada | Se permite explorar soluciones que exceden la capacidad con una penalización que se adapta para mantener una fracción objetivo de candidatos factibles | Vidal et al. (2012) |
 | Vecindarios granulares | Los movimientos se restringen a los *k* vecinos más cercanos de cada cliente | Toth y Vigo (2003) |
 | SWAP* | Intercambio de dos clientes entre rutas, reinsertando cada uno en su mejor posición | Vidal (2022) |
+| Bucle de SENDA3 (desde 125 nodos) | Destruir cadenas contiguas de rutas vecinas y reconstruir con inserción voraz con parpadeo (*slack induction by string removals*), sobre la solución en sitio | Christiaens y Vanden Berghe (2020) |
+| Aceptación en el bucle de SENDA3 | Recocido simulado; la temperatura se expresa en múltiplos del costo medio de un arco de la solución, como en los métodos escalables para instancias grandes | Kirkpatrick, Gelatt y Vecchi (1983); Accorsi y Vigo (2021) |
 | Portafolio en paralelo | Dos configuraciones × dos semillas en hilos, con reducción determinista | — |
 | Capacidad efectiva | Se rutea con una fracción α del volumen nominal, calibrada por variante de restricciones, y se relaja por pasos si la carga no cabe | — |
 | Empaque 3D | Heurística de puntos extremos con reinicios, asentado por gravedad, soporte mínimo, fragilidad y orientación | Crainic, Perboli y Tadei (2008); Gendreau et al. (2006) |
@@ -65,8 +67,11 @@ distancia = sum(matriz[a][b] for r in res["routes"]
 
 ## Referencias
 
+- Accorsi, L., y Vigo, D. (2021). A fast and scalable heuristic for the solution of large-scale capacitated vehicle routing problems. *Transportation Science*, 55(4), 832–856.
+- Christiaens, J., y Vanden Berghe, G. (2020). Slack induction by string removals for vehicle routing problems. *Transportation Science*, 54(2), 417–433.
 - Crainic, T. G., Perboli, G., y Tadei, R. (2008). Extreme point-based heuristics for three-dimensional bin packing. *INFORMS Journal on Computing*, 20(3), 368–384.
 - Gendreau, M., Iori, M., Laporte, G., y Martello, S. (2006). A tabu search algorithm for a routing and container loading problem. *Transportation Science*, 40(3), 342–350.
+- Kirkpatrick, S., Gelatt, C. D., y Vecchi, M. P. (1983). Optimization by simulated annealing. *Science*, 220(4598), 671–680.
 - Ropke, S., y Pisinger, D. (2006). An adaptive large neighborhood search heuristic for the pickup and delivery problem with time windows. *Transportation Science*, 40(4), 455–472.
 - Shaw, P. (1998). Using constraint programming and local search methods to solve vehicle routing problems. En *Principles and Practice of Constraint Programming — CP98*, 417–431.
 - Toth, P., y Vigo, D. (2003). The granular tabu search and its application to the vehicle-routing problem. *INFORMS Journal on Computing*, 15(4), 333–346.

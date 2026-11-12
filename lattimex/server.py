@@ -118,8 +118,8 @@ def validate_solve(payload: dict) -> dict:
     if fleet_mode not in ("exact", "up_to"):
         raise ValueError("fleet_mode debe ser 'exact' o 'up_to'")
     router = str(payload.get("router", "auto")).lower()
-    if router not in ("auto", "senda2", "senda"):
-        raise ValueError("router debe ser 'auto', 'senda2' o 'senda'")
+    if router not in ("auto", "senda3", "senda2", "senda"):
+        raise ValueError("router debe ser 'auto', 'senda3', 'senda2' o 'senda'")
     return {
         "points": clean_points, "fleet": clean_fleet, "fleet_count": len(clean_fleet),
         "packages": clean_packages,

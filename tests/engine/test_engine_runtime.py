@@ -159,7 +159,7 @@ class PortafolioTest(unittest.TestCase):
         a = er.solve(self._instancia())
         b = er.solve(self._instancia())
         self.assertTrue(a["metrics"]["portafolio"])
-        self.assertEqual(a["engine"]["router"], "senda2-portfolio/3x2")    # 6 entregas por unidad
+        self.assertEqual(a["engine"]["router"], er.NUCLEO2 + "-portfolio/3x2")    # 6 entregas por unidad
         self.assertEqual([r["sequence"] for r in a["routes"]], [r["sequence"] for r in b["routes"]])
 
     def test_senda_1_0_a_peticion(self):
@@ -171,7 +171,7 @@ class PortafolioTest(unittest.TestCase):
         req = self._instancia()
         req["fleet_count"] = 3                                             # 4 entregas por unidad
         self.assertEqual(er._elegir_nucleo("auto", 12, 3), "senda")
-        self.assertEqual(er._elegir_nucleo("auto", 12, 2), "senda2")
+        self.assertEqual(er._elegir_nucleo("auto", 12, 2), er.NUCLEO2)
         self.assertEqual(er.solve(req)["metrics"]["nucleo"], "senda")
 
 

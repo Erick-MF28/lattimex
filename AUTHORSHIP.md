@@ -11,7 +11,7 @@
 Desarrollo independiente: el motor es producto de una línea de investigación propia del titular,
 sin afiliación institucional ni cesión de derechos, contrato laboral o institucional que afecte al
 código. La versión 1.0.0 de este repositorio contenía el mismo motor que corría en producción en el
-LATTIMEX Planner (1.6.0); la versión 1.1.0 trae el motor 1.7.0, descrito abajo.
+LATTIMEX Planner (1.6.0); la versión 1.1.0 trae el motor 1.7.0 y la 1.2.0, el motor 1.8.0, descritos abajo.
 
 ## Código de terceros incorporado
 
@@ -41,6 +41,27 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 
 ## Versiones y huellas
+
+### Versión 1.2.0
+
+| Elemento | Valor |
+|---|---|
+| Versión del repositorio | 1.2.0 |
+| Versión del motor | lattimex-engine-1.8.0 |
+| SHA-256 de `native/senda3_core.cpp` (finales de línea LF) | `2bdf9c1a19160a7acaff03ef1edb11a726c370377865993c463c596cf888b515` |
+| `native/senda2_core.cpp`, `native/p3l.cpp`, `native/senda_core.cpp` y `native/pack3d.cpp` | sin cambios (huellas abajo) |
+| Huella determinista con zig/libc++ (`python -m lattimex probe`) | `f96302436914b57d` (4 rutas, 8 857 m, 3 000 iteraciones) |
+| Huella determinista con g++/libstdc++ (Linux, MinGW) | la publica el CI del repositorio |
+
+Comparación textual de lo que 1.2.0 agrega (`senda3_core.cpp` en lo que suma a `senda2_core.cpp`, y los
+cambios de `cvrp.py`), con la misma metodología, revisada en noviembre de 2026: 0 líneas idénticas con
+HGS-CVRP, FILO2, el SolutionValidator de Krebs y el código de Tamke et al.; 0 fragmentos de 12 tokens en
+común con HGS-CVRP, Krebs y Tamke, y 6 genéricos con FILO2 (`std::sort(removed.begin(), removed.end(), [&`).
+El bucle de SENDA3 es una implementación propia del método publicado por Christiaens y Vanden Berghe
+(2020). La aceptación usa fórmulas publicadas: recocido con enfriamiento exponencial y la temperatura en
+múltiplos del arco medio de la solución, la misma escala de FILO (Accorsi y Vigo, 2021). Coinciden las
+ideas, que se citan en [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md); no se incorpora código de FILO2
+(GPL-3.0) ni de otras implementaciones.
 
 ### Versión 1.1.0
 

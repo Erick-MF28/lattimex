@@ -19,7 +19,7 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
                                                             │
                                                             ├── map_preparation.py  matriz vial del trabajo
                                                             └── engine_runtime.solve()
-                                                                  ├── ruteo SENDA2 (native/senda2_core.cpp; SENDA 1.0.0 con rutas cortas)
+                                                                  ├── ruteo SENDA3 (native/senda3_core.cpp; SENDA 1.0.0 con rutas cortas)
                                                                   ├── acomodo 3D P3L (native/p3l.cpp) + verificador estricto
                                                                   ├── R3L (sólo fleet_mode=up_to, instancias pequeñas)
                                                                   ├── mediación con flota fija
@@ -45,8 +45,12 @@ los mismos que obtuvieron los usuarios del servicio. La versión 1.1.0 trae el m
 `lattimex-engine-1.7.0`: núcleo SENDA2, acomodador P3L con verificador estricto, R3L y el respaldo del
 constructor de flota exacta, medidos en [paper/guia_senda2.pdf](../paper/guia_senda2.pdf). Los fuentes
 de 1.0.0 (`senda_core.cpp`, `pack3d.cpp`) siguen en el repositorio sin cambios y el motor los usa como
-respaldo. El servidor local importa el motor sin cambios (`lattimex.native.configure()` expone las
-bibliotecas mediante `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` y `LATTIMEX_PACK3D`).
+respaldo. La versión 1.2.0 trae el motor `lattimex-engine-1.8.0`: el núcleo SENDA3
+(`senda3_core.cpp`), que con menos de 125 nodos corre SENDA2 y desde 125 un bucle de cadenas vecinas,
+medido en [paper/guia_senda3.pdf](../paper/guia_senda3.pdf); `senda2_core.cpp` sigue en el repositorio
+sin cambios. El servidor local importa el motor sin cambios (`lattimex.native.configure()` expone las
+bibliotecas mediante `LATTIMEX_CORE3`, `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` y
+`LATTIMEX_PACK3D`).
 
 ## Mapas
 

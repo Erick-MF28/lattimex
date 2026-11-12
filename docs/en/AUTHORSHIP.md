@@ -11,7 +11,7 @@
 Independent development: the engine is the product of the rights holder's own line of research,
 with no institutional affiliation and no assignment of rights, employment or institutional contract
 affecting the code. Version 1.0.0 of this repository contained the same engine that ran in production in the
-LATTIMEX Planner (1.6.0); version 1.1.0 brings engine 1.7.0, described below.
+LATTIMEX Planner (1.6.0); version 1.1.0 brings engine 1.7.0 and version 1.2.0 engine 1.8.0, described below.
 
 ## Third-party code incorporated
 
@@ -41,6 +41,27 @@ name. The published ideas that the engine implements are cited in
 [ACADEMIC_NOTES.md](ACADEMIC_NOTES.md).
 
 ## Versions and fingerprints
+
+### Version 1.2.0
+
+| Item | Value |
+|---|---|
+| Repository version | 1.2.0 |
+| Engine version | lattimex-engine-1.8.0 |
+| SHA-256 of `native/senda3_core.cpp` (LF line endings) | `2bdf9c1a19160a7acaff03ef1edb11a726c370377865993c463c596cf888b515` |
+| `native/senda2_core.cpp`, `native/p3l.cpp`, `native/senda_core.cpp` and `native/pack3d.cpp` | unchanged (hashes below) |
+| Deterministic fingerprint with zig/libc++ (`python -m lattimex probe`) | `f96302436914b57d` (4 rutas, 8 857 m, 3 000 iteraciones) |
+| Deterministic fingerprint with g++/libstdc++ (Linux, MinGW) | published by the repository's CI |
+
+Textual comparison of what 1.2.0 adds (`senda3_core.cpp` in what it adds to `senda2_core.cpp`, and the
+changes to `cvrp.py`), with the same methodology, reviewed in November 2026: 0 identical lines with
+HGS-CVRP, FILO2, Krebs's SolutionValidator and the code of Tamke et al.; 0 shared 12-token fragments with
+HGS-CVRP, Krebs and Tamke, and 6 generic ones with FILO2 (`std::sort(removed.begin(), removed.end(), [&`).
+The SENDA3 loop is an original implementation of the method published by Christiaens and Vanden Berghe
+(2020). Acceptance uses published formulas: annealing with exponential cooling and the temperature in
+multiples of the mean arc of the solution, the same scale as FILO (Accorsi and Vigo, 2021). The ideas
+coincide and are cited in [ACADEMIC_NOTES.md](ACADEMIC_NOTES.md); no code from FILO2 (GPL-3.0) or from
+other implementations is incorporated.
 
 ### Version 1.1.0
 

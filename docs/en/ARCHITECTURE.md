@@ -19,7 +19,7 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
                                                             │
                                                             ├── map_preparation.py  road matrix of the job
                                                             └── engine_runtime.solve()
-                                                                  ├── SENDA2 routing (native/senda2_core.cpp; 1.0.0 SENDA on short routes)
+                                                                  ├── SENDA3 routing (native/senda3_core.cpp; 1.0.0 SENDA on short routes)
                                                                   ├── P3L 3D packing (native/p3l.cpp) + strict checker
                                                                   ├── R3L (fleet_mode=up_to only, small instances)
                                                                   ├── fixed-fleet mediation
@@ -44,9 +44,13 @@ those of the production version `lattimex-engine-1.6.0`, so that the repository'
 that users of the service obtained. Version 1.1.0 brings engine `lattimex-engine-1.7.0`: the SENDA2 core,
 the P3L packer with a strict checker, R3L and the exact-fleet constructor fallback, measured in
 [paper/senda2_guide_en.pdf](../../paper/senda2_guide_en.pdf). The 1.0.0 sources (`senda_core.cpp`,
-`pack3d.cpp`) remain in the repository unchanged and the engine uses them as fallbacks. The local server
-imports the engine unchanged (`lattimex.native.configure()` exposes the libraries through
-`LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` and `LATTIMEX_PACK3D`).
+`pack3d.cpp`) remain in the repository unchanged and the engine uses them as fallbacks. Version 1.2.0
+brings engine `lattimex-engine-1.8.0`: the SENDA3 core (`senda3_core.cpp`), which runs SENDA2 below 125
+nodes and a loop of neighboring strings from 125 on, measured in
+[paper/guia_senda3.pdf](../../paper/guia_senda3.pdf) (in Spanish); `senda2_core.cpp` remains in the
+repository unchanged. The local server imports the engine unchanged (`lattimex.native.configure()`
+exposes the libraries through `LATTIMEX_CORE3`, `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` and
+`LATTIMEX_PACK3D`).
 
 ## Maps
 

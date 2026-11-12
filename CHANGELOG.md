@@ -1,5 +1,33 @@
 # Cambios
 
+## 1.2.0 — 12 de noviembre de 2026
+
+Un núcleo de ruteo nuevo para problemas grandes. Las versiones 1.0.0 y 1.1.0 siguen disponibles en sus
+etiquetas `v1.0.0` y `v1.1.0`. Las mediciones están en la guía nueva,
+[paper/guia_senda3.pdf](paper/guia_senda3.pdf); las guías de SENDA y SENDA2 se conservan sin cambios.
+
+**Cambios en el motor (`lattimex-engine-1.8.0`):**
+
+- **Ruteo SENDA3 por omisión** (`native/senda3_core.cpp`): un selector por tamaño. Con menos de 125 nodos
+  (clientes + depósito) corre SENDA2 sin cambios; desde 125 nodos corre un bucle de cadenas vecinas que
+  modifica la solución en sitio, de modo que el costo de una iteración no crece con el número de clientes.
+  Las ideas publicadas en que se apoya están en [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
+- **Medición** (un hilo, mismo reloj, misma sesión, semillas nuevas, contrato congelado antes de correr):
+  en 97 instancias X a 4 s, SENDA3 queda a 0.79 % de la mejor solución conocida, SENDA2 a 2.03 %, HGS-CVRP
+  a 1.78 % y FILO2 a 0.78 %. En las 32 instancias X de 500 a 1 001 nodos la ventaja sobre HGS-CVRP es de
+  2.25 puntos a 4 s y de 1.23 a 30 s. Límites: bajo 200 nodos HGS-CVRP sigue por delante, con FILO2 es
+  empate y en A/B/E con flota fija (2 s) SENDA3 iguala a SENDA2 (0.065 % contra 0.062 %; HGS-CVRP 0.005 %).
+- **`python -m lattimex cvrp` usa SENDA3 por omisión.** `--router senda2` y `--router senda` corren los
+  núcleos de 1.1.0 y 1.0.0, para reproducir las guías anteriores. Si SENDA2 termina sin solución válida
+  (flota fija apretada), SENDA3 usa el tiempo que queda con el bucle nuevo.
+- **El Planner y la API local no cambian.** El motor informa `senda3` en los campos `router` y `nucleo`
+  de la respuesta; en la petición, `"router": "senda3"` y `"senda2"` son sinónimos (el núcleo cargado) y
+  `"senda"` sigue forzando el de 1.0.0. Con menos de 6 entregas por unidad el motor sigue usando el núcleo
+  SENDA de 1.0.0, como en 1.1.0.
+- `python -m lattimex build` compila cinco bibliotecas (se agrega `libsenda3`); `native/senda2_core.cpp`
+  no cambia y su huella de 1.1.0 sigue valiendo.
+- Huella determinista nueva (incluye la versión del motor).
+
 ## 1.1.0 — 23 de octubre de 2026
 
 Avance sobre la 1.0.0: un núcleo de ruteo mejor, un acomodador 3D nuevo y la integración de ambos. La

@@ -1,0 +1,660 @@
+% =========================================================================
+% SENDA3 — guía educativa 3 (repositorio LATTIMEX)
+% SPDX-License-Identifier: CC-BY-4.0
+% Compilación: pdflatex guia_senda3 && bibtex guia_senda3 && pdflatex guia_senda3 && pdflatex guia_senda3
+% Cifras y datos de las figuras en datos3/ (generados desde los datos crudos de los contratos).
+% Esta guía no reemplaza a guia_senda.tex ni a guia_senda2.tex, que se conservan sin cambios.
+% Edición pública, versión 1.2.0 del repositorio (motor lattimex-engine-1.8.0).
+% =========================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-noshorthands,es-nodecimaldot,es-tabla]{babel}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[most]{tcolorbox}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=OliveGreen,urlcolor=MidnightBlue]{hyperref}
+
+\floatname{algorithm}{Algoritmo}
+\algrenewcommand\algorithmicrequire{\textbf{Entrada:}}
+\algrenewcommand\algorithmicensure{\textbf{Salida:}}
+\algrenewcommand\algorithmicwhile{\textbf{mientras}}
+\algrenewcommand\algorithmicdo{\textbf{hacer}}
+\algrenewcommand\algorithmicif{\textbf{si}}
+\algrenewcommand\algorithmicthen{\textbf{entonces}}
+\algrenewcommand\algorithmicelse{\textbf{si no}}
+\algrenewcommand\algorithmicfor{\textbf{para}}
+\algrenewcommand\algorithmicend{\textbf{fin}}
+\algrenewcommand\algorithmicreturn{\textbf{devolver}}
+\algrenewtext{EndWhile}{\textbf{fin mientras}}
+\algrenewtext{EndIf}{\textbf{fin si}}
+\algrenewtext{EndFor}{\textbf{fin para}}
+
+% --- Cajas didácticas (las mismas de las guías 1 y 2) ----------------------
+\definecolor{sendaink}{RGB}{19,34,31}
+\definecolor{sendared}{RGB}{210,75,50}
+\definecolor{sendagreen}{RGB}{11,131,96}
+\newtcolorbox{ideaclave}[1][]{enhanced,breakable,colback=sendagreen!6,colframe=sendagreen!70!black,
+  fonttitle=\bfseries,title={Idea clave#1},left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{ejemplo}[1][]{enhanced,breakable,colback=MidnightBlue!4,colframe=MidnightBlue!70,
+  fonttitle=\bfseries,title={Ejemplo resuelto#1},left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{leccion}[1][]{enhanced,breakable,colback=sendared!6,colframe=sendared!85!black,
+  fonttitle=\bfseries,title={Lección metodológica#1},left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{reproducir}[1][]{enhanced,breakable,colback=gray!6,colframe=gray!60!black,
+  fonttitle=\bfseries,title={Para reproducir#1},left=6pt,right=6pt,top=4pt,bottom=4pt}
+
+\newcommand{\senda}{SENDA}
+\newcommand{\sendados}{SENDA2}
+\newcommand{\sendatres}{SENDA3}
+\newcommand{\pp}{\,pp}
+\newcommand{\tsl}[1]{\texttt{\small #1}}
+
+\input{datos3/macros3_auto.tex}
+
+\title{\textbf{SENDA3: rutas de mil puntos en segundos}\\[0.4em]
+\large Tercera guía educativa del motor LATTIMEX: por qué un bucle nuevo, cómo se midió\\
+contra HGS-CVRP y FILO2 con presupuestos de hasta 60 segundos, y dónde no gana}
+\author{Erick Martínez\\
+\small LATTIMEX · investigación independiente · Querétaro, México\\
+\small \texttt{contacto@lattimex.com} · \texttt{https://lattimex.com}}
+\date{Noviembre de 2026 · versión 1.2.0}
+
+\hypersetup{
+  pdftitle={SENDA3: rutas de mil puntos en segundos. Guía educativa 3 del motor LATTIMEX},
+  pdfauthor={Erick Martínez (LATTIMEX)},
+  pdfsubject={Ruteo de vehículos con capacidad (CVRP) con presupuestos de tiempo cortos},
+  pdfkeywords={CVRP, SISR, recocido simulado, búsqueda local, HGS-CVRP, FILO2, evaluación reproducible}
+}
+
+\makeatletter
+\def\ps@licenciaguia{%
+  \let\@oddhead\@empty
+  \let\@evenhead\@empty
+  \def\@oddfoot{\vtop{\offinterlineskip%
+    \hbox to\textwidth{\hfil\thepage\hfil}%
+    \vskip5pt
+    \hbox to\textwidth{\hfil\scriptsize\textcopyright{} 2026 Erick Martínez (LATTIMEX).
+      CC BY 4.0: \url{https://creativecommons.org/licenses/by/4.0/}\hfil}}}%
+  \let\@evenfoot\@oddfoot
+}
+\makeatother
+
+\begin{document}
+\maketitle
+\thispagestyle{licenciaguia}
+
+\begin{abstract}
+\noindent\textbf{En pocas palabras.} La segunda guía dejó a \sendados{} cerca de HGS-CVRP en instancias
+de 200 a 430 nodos, pero lejos de FILO2 y cada vez más lejos al crecer la instancia. Esta tercera guía
+explica por qué pasaba eso y presenta \sendatres, que lo corrige. \sendatres{} está pensado para
+responder en segundos: todos los resultados de este documento usan presupuestos de hasta 60\,s en un
+solo hilo, y es en ese régimen donde se compara.
+
+\smallskip
+\noindent \sendatres{} es un selector entre dos núcleos. Con menos de 125 nodos corre \sendados{} sin
+cambios. Desde 125 nodos corre un bucle nuevo de destruir y reconstruir \emph{en sitio}: quita cadenas
+de clientes vecinos, las reinserta con una regla voraz, acepta con recocido simulado y, cada mil
+iteraciones, aplica la búsqueda local de \sendados{} sólo a las rutas que cambiaron. El costo de una
+iteración deja de depender del tamaño de la instancia: en 4\,s hace unas \IterTres{} iteraciones donde
+\sendados{} hacía \IterDos.
+
+\smallskip
+\noindent Con un contrato congelado antes de correr, semillas nuevas y verificación independiente, en
+las 100 instancias X (101 a 1001 nodos) a 4\,s \sendatres{} queda a \TresX\,\% de la mejor solución
+conocida, frente a \DosX\,\% de \sendados, \HgsX\,\% de HGS-CVRP y \FiloX\,\% de FILO2. Contra HGS la
+diferencia pareada es \DXTresHgs; contra FILO2 es un empate (\DXTresFilo). En las 32 instancias de 500
+nodos o más, la ventaja sobre HGS es de \DCurHgsIVMedia\pp{} a 4\,s y de \DCurHgsXXXMedia\pp{} a 30\,s.
+\sendatres{} no gana en todo: con menos de 200 nodos HGS sigue delante por una décima de punto o menos,
+y a FILO2 no lo supera.
+\end{abstract}
+
+\noindent\textbf{Palabras clave:} ruteo de vehículos; CVRP; destruir y reconstruir; SISR; recocido
+simulado; presupuestos de tiempo cortos; evaluación reproducible; docencia en optimización.
+
+\tableofcontents
+\newpage
+
+% =========================================================================
+\section*{Cómo leer este documento}
+\addcontentsline{toc}{section}{Cómo leer este documento}
+
+Esta guía continúa a las dos anteriores (\tsl{paper/guia\_senda.pdf} y \tsl{paper/guia\_senda2.pdf}) y
+no las reemplaza. La primera explica \senda{} pieza por pieza y las bases de una comparación justa; la
+segunda presenta \sendados{} y el acomodo tridimensional. Aquí se supone ese conocimiento y sólo se
+trata el ruteo clásico con capacidad (CVRP).
+
+\begin{itemize}[leftmargin=1.5em]
+\item La Sección~\ref{sec:porque} explica por qué \sendados{} no escalaba.
+\item La Sección~\ref{sec:bucle} describe el bucle nuevo, paso a paso.
+\item La Sección~\ref{sec:selector} explica por qué \sendatres{} es un selector y no un reemplazo.
+\item Las Secciones~\ref{sec:medicion} y~\ref{sec:curva} presentan la medición contra HGS-CVRP y FILO2.
+\item La Sección~\ref{sec:pruebalo} explica cómo probarlo.
+\end{itemize}
+
+Los recuadros tienen las mismas cuatro funciones que en las guías anteriores: \emph{idea clave},
+\emph{ejemplo resuelto}, \emph{lección metodológica} y \emph{para reproducir}.
+
+\paragraph{El régimen de este documento.} \sendatres{} se diseñó para un planificador que responde
+mientras el usuario espera. Por eso todas las mediciones usan presupuestos de pared de 2 a 30 segundos
+(un punto adicional a 120\,s se reporta como referencia), en un hilo y en una sola máquina. Las cifras
+publicadas de HGS-CVRP y FILO2 corresponden a presupuestos de varios minutos; esta guía no afirma nada
+sobre ese régimen.
+
+% =========================================================================
+\section{Introducción}
+\label{sec:intro}
+
+La segunda guía cerraba con una advertencia y una pista. La advertencia: FILO2 era ``claramente más
+fuerte en instancias grandes con reloj corto''. La pista, en el trabajo futuro: localizar la búsqueda
+en los vértices tocados, ``la diferencia de diseño más probable detrás de la brecha en X''.
+
+La meta de \sendatres{} se fijó en una frase: \textbf{meter instancias más grandes y resolverlas en
+menos tiempo sin perder calidad}. El tamaño objetivo fue de 1\,000 puntos. La respuesta corta tiene
+tres partes:
+
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{El problema no eran los parámetros.} En una instancia de 1\,001 nodos, \sendados{} hacía
+unas 210 iteraciones en 4\,s. Ajustes que multiplicaron las iteraciones por 18 no movieron el costo.
+\item \textbf{Un bucle en sitio.} El bucle nuevo no copia la solución ni recorre estructuras del
+tamaño de la instancia en cada iteración. Hace cientos de miles de iteraciones baratas en lugar de
+cientos de iteraciones caras.
+\item \textbf{Un selector.} En instancias chicas el bucle nuevo pierde por poco contra \sendados. En
+lugar de forzarlo, \sendatres{} usa cada núcleo donde es mejor.
+\end{enumerate}
+
+\begin{ideaclave}
+Cuando un algoritmo no escala, conviene preguntar primero cuánto cuesta una iteración y de qué
+depende ese costo, antes de ajustar qué hace cada iteración.
+\end{ideaclave}
+
+% =========================================================================
+\section{Por qué \sendados{} no escalaba}
+\label{sec:porque}
+
+\sendados{} es un ALNS: en cada iteración copia la solución, destruye entre 10\,\% y 35\,\% de los
+clientes, los reinserta con una reparación \emph{regret}, mejora el resultado con búsqueda local y
+decide si lo acepta. Con 100 clientes eso es rápido. Con 1\,000, destruir el 10\,\% significa quitar y
+reinsertar 100 clientes, y la búsqueda local recorre toda la solución.
+
+En una instancia de 1\,001 nodos, \sendados{} hacía unas 210 iteraciones en 4\,s. Se probó lo evidente:
+destruir menos clientes, limitar la búsqueda local a lo tocado, cambiar la temperatura. Las iteraciones
+se multiplicaron por 18 y el costo quedó en el mismo rango. Cada iteración seguía pagando trabajo
+proporcional al tamaño de la instancia (copiar la solución, reconstruir índices, ordenar), y quitar
+clientes sueltos producía muchas veces la misma solución, porque cada uno volvía a su sitio.
+
+De ahí salieron las dos ideas de \sendatres:
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Costo:} si una iteración sólo toca las rutas que cambia, su costo no depende del
+número de clientes.
+\item \textbf{Vecindario:} quitar \emph{cadenas} de clientes contiguos en rutas vecinas produce
+cambios que la reinserción no deshace, a diferencia de quitar clientes sueltos.
+\end{itemize}
+
+Las dos apuntan al mismo diseño: el de SISR, \emph{Slack Induction by String
+Removals}~\cite{christiaens2020}, que la segunda guía ya había usado en Python para el ruteo con
+revisión de carga.
+
+% =========================================================================
+\section{El bucle de \sendatres}
+\label{sec:bucle}
+
+\sendatres{} arranca igual que \sendados: construye una solución y la pule con búsqueda local. Después,
+en lugar del ALNS, repite cuatro pasos sobre una sola solución que modifica en sitio
+(Algoritmo~\ref{alg:s3}).
+
+\begin{algorithm}[H]
+\caption{Bucle de \sendatres{} (esquema)}
+\label{alg:s3}
+\begin{algorithmic}[1]
+\Require solución inicial $S$ (de \sendados), vecinos granulares, tiempo $t$
+\State $T_0 \gets$ longitud media de un arco de $S$;\quad $T_{\text{fin}} \gets 0.01\,T_0$
+\While{no se haya usado el 90\,\% de $t$}
+  \State $T \gets T_0\,(T_{\text{fin}}/T_0)^{\text{fracción de tiempo usada}}$
+  \State \textbf{destruir:} elegir un cliente semilla; quitar una cadena de la ruta de la semilla y de
+         las rutas de sus vecinos, guardando una copia sólo de esas rutas
+  \State \textbf{reconstruir:} ordenar los clientes quitados; insertar cada uno en la posición más
+         barata junto a sus vecinos donde quepa
+  \If{algún cliente no cabe en ninguna ruta} restaurar las rutas guardadas y continuar \EndIf
+  \State \textbf{aceptar} si $\Delta < -T\ln u$, con $u$ uniforme en $(0,1)$; si no, restaurar las rutas guardadas
+  \State cada 1\,000 iteraciones: búsqueda local de \sendados{} sobre los clientes de las rutas que cambiaron
+\EndWhile
+\State pulir la mejor solución con la búsqueda local de \sendados{} durante el 10\,\% restante
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Destruir: cadenas en rutas vecinas}
+
+Se elige un cliente semilla al azar. De su ruta se quita una cadena de clientes consecutivos que lo
+contiene, de longitud aleatoria entre 1 y 10. Luego se recorren los vecinos más cercanos de la
+semilla: de la ruta de cada uno (si no se ha tocado ya en esta iteración) se quita otra cadena que
+contiene a ese vecino. El número de cadenas se sortea de modo que en promedio se quiten unos 10
+clientes por iteración, sin importar si la instancia tiene 200 o 1\,000.
+
+Quitar cadenas contiguas en rutas cercanas abre huecos \emph{alineados}: quedan varios extremos de ruta
+próximos entre sí, y la reinserción puede cruzar tramos de una ruta a otra. Quitar clientes sueltos
+deja huecos aislados, y lo más barato suele ser volver a poner cada cliente donde estaba.
+
+\subsection{Reconstruir: inserción voraz con parpadeo}
+
+Los clientes quitados se ordenan con una de cuatro reglas elegida al azar: orden aleatorio (4 de cada
+11 veces), demanda descendente (4 de 11), los más lejanos al depósito primero (2 de 11) o los más
+cercanos primero (1 de 11). Cada cliente se inserta en la posición que menos aumenta la distancia,
+buscando sólo junto a sus 25 vecinos más cercanos y sólo en rutas donde cabe. Si ninguna de esas
+posiciones sirve, se revisan todas las rutas; si aun así no cabe y la flota lo permite, se abre una
+ruta.
+
+El \emph{parpadeo}: al comparar posiciones, cada una se ignora con probabilidad de 1\,\%. Así la
+reconstrucción no es siempre la misma para el mismo hueco, sin dejar de ser casi voraz.
+
+\subsection{Aceptar: recocido con temperatura en arcos}
+
+El cambio se acepta si empeora la distancia menos que un umbral aleatorio que depende de la temperatura
+$T$. La temperatura baja de forma exponencial con el tiempo usado, de $T_0$ a $0.01\,T_0$, y $T_0$ es
+la longitud media de un arco de la solución inicial. El criterio de aceptación y el enfriamiento
+exponencial son los de SISR~\cite{christiaens2020}; medir la temperatura en múltiplos del arco medio
+de la solución es la escala que usan FILO y FILO2~\cite{accorsi2021,accorsi2023}.
+
+\begin{ejemplo}[: qué significa una temperatura de un arco]
+Una solución de 1\,000 clientes y 43 rutas con distancia 75\,000 tiene $1\,000 + 43$ arcos, así que el
+arco medio mide unas 72 unidades y $T_0 = 72$. Al inicio, un cambio que alarga la solución en 72
+unidades se acepta con probabilidad $e^{-1}$, cerca de 37\,\%; uno que la alarga en 144, con
+$e^{-2}$, cerca de 14\,\%. Al final, con $T = 0.72$, sólo pasan cambios que empeoran menos de una o dos
+unidades. Medir la temperatura en arcos hace que el mismo par de valores sirva para instancias con
+distancias muy distintas.
+\end{ejemplo}
+
+Si el cambio se rechaza, se restauran sólo las rutas guardadas al destruir. No hay copia de la solución
+completa en ningún punto del bucle; esa es la diferencia que hace barata la iteración.
+
+\subsection{La búsqueda local periódica}
+
+\begin{leccion}[: el bucle solo no bastaba]
+La primera versión del bucle, sin búsqueda local, ganaba en la mayoría de las instancias de prueba y
+perdía por mucho en unas pocas. La inserción voraz no hace intercambios dentro de una ruta ni entre dos
+rutas, y hay instancias que los necesitan. Agregar, cada mil iteraciones, la búsqueda local de
+\sendados{} restringida a los clientes de las rutas que cambiaron corrigió esos casos. Promediar habría
+escondido el problema: se vio por instancia.
+\end{leccion}
+
+La búsqueda local periódica tiene un tope de 0.02\,s por llamada y capacidad dura. Su resultado
+reemplaza a la solución en curso sólo si es mejor.
+
+\subsection{Flota}
+
+Con flota libre, el bucle no usa más rutas que la solución inicial. Si la solución inicial viene
+sobrecargada (pasa con rutas muy cortas, de tres o cuatro clientes), puede abrir rutas hasta eliminar
+la sobrecarga y fija el tope en ese momento. Con flota fija, el tope es el número de vehículos. La
+inserción nunca aumenta la sobrecarga, un cambio que la reduce se acepta siempre y la mejor solución
+sólo se actualiza cuando no hay sobrecarga.
+
+\begin{ideaclave}
+En 4\,s, sobre las X de 125 nodos o más, \sendatres{} hace una mediana de \IterTres{} iteraciones por
+corrida; \sendados{} hace \IterDos. No son comparables una a una (la de \sendados{} mueve decenas de
+clientes y la de \sendatres{} unos diez), pero el cambio de escala es el punto.
+\end{ideaclave}
+
+% =========================================================================
+\section{Por qué un selector}
+\label{sec:selector}
+
+Antes de la medición de esta guía hubo una primera confirmación del bucle, con reglas escritas antes de
+correr. En instancias X el bucle mejoró a \sendados{} con holgura. En las instancias chicas A/B/E con
+flota fija a 2\,s quedó unas centésimas de punto por encima, y la regla pedía no perder.
+
+\begin{leccion}[: una regla que falla también decide]
+La regla de A/B/E se escribió antes de correr precisamente para no poder ignorarla después. La
+diferencia es pequeña, pero consistente. El protocolo decía qué hacer si fallaba sólo esa regla:
+conservar \sendados{} para las instancias chicas.
+\end{leccion}
+
+Faltaba saber dónde poner el corte, porque A/B/E termina en 101 nodos. Se midieron las instancias X de
+101 a 195 nodos, con flota libre y con flota fija, y una regla fijada de antemano: el umbral es el
+menor tamaño a partir del cual el bucle no pierde en ningún tramo.
+
+El umbral quedó en \textbf{125 nodos} (clientes más depósito). \sendatres{} es entonces:
+
+\begin{itemize}[leftmargin=1.5em]
+\item con menos de 125 nodos, \sendados{} tal cual;
+\item con 125 nodos o más, el bucle nuevo;
+\item si \sendados{} termina sin una solución válida (le pasa con flotas muy apretadas), el bucle
+nuevo corre con el tiempo que quede.
+\end{itemize}
+
+El umbral se eligió y se evaluó con las mismas 21 instancias. Es una decisión de ingeniería. Lo que sí está confirmado es el
+comportamiento del selector completo, que se mide a continuación.
+
+% =========================================================================
+\section{La medición}
+\label{sec:medicion}
+
+\subsection{Diseño}
+
+Antes de correr se congeló un contrato con los brazos, los bancos, las semillas, el análisis y las
+reglas de decisión, junto con las huellas SHA-256 de binarios, fuentes, instancias y scripts. El
+programa de la corrida se niega a empezar si algo cambió.
+
+\paragraph{Brazos.} \sendatres{} (el selector, tal como se integra al repositorio); \sendados{} (el
+publicado en la versión 1.1.0); HGS-CVRP~\cite{vidal2022hgs} y FILO2~\cite{accorsi2023}, compilados de
+sus fuentes oficiales, los mismos binarios de la segunda guía.
+
+\paragraph{Reloj.} Pared, desde antes de leer la instancia hasta después de verificar la solución.
+Todos reciben el 80\,\% de la pared como presupuesto interno. Un hilo, un ensayo a la vez, todos los
+brazos en la misma sesión y con el orden rotado por instancia y réplica.
+
+\paragraph{Validez.} Una corrida cuenta si la solución, revisada fuera del solver, cubre a todos los
+clientes una vez, respeta la capacidad y la flota, su costo recalculado coincide y llegó dentro de la
+pared. Distancias redondeadas al entero (convención de CVRPLIB~\cite{cvrplib}).
+
+\begin{table}[H]
+\centering
+\caption{Bancos del contrato. Semillas 21000, 21100, \ldots{} (nunca usadas). \EnsayosContrato{} ensayos.}
+\label{tab:bancos}
+\small
+\begin{tabular}{@{}llrlr@{}}
+\toprule
+Banco & Instancias & Pared & Flota & Réplicas \\
+\midrule
+X a 4\,s & las 100 X de Uchoa et al.~\cite{uchoa2017} (101--1001 nodos) & 4\,s & libre & 5 \\
+A/B/E a 2\,s & 61 instancias A, B y E (22--101 nodos) & 2\,s & fija ($\le k$) & 10 \\
+X grandes a 10\,s & las 32 X de 500 nodos o más & 10\,s & libre & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+X a 4\,s con flota libre y A/B/E a 2\,s con flota fija son el reloj y el formato de las dos guías
+anteriores. FILO2 no entra en A/B/E porque no tiene opción de flota fija.
+
+\paragraph{Análisis.} Por instancia, media de las réplicas; una instancia entra en una comparación
+sólo si los dos solvers tienen todas sus corridas aceptadas. Se reporta la diferencia pareada de
+brecha en puntos porcentuales (pp), su intervalo de confianza de 95\,\% por remuestreo~\cite{efron1979},
+la prueba de Wilcoxon~\cite{wilcoxon1945} y el conteo de instancias donde \sendatres{} es
+mejor/empata/peor (empate si la diferencia es de 0.005\pp{} o menos).
+
+\paragraph{Reglas fijadas antes de correr.} (R1) en X, \sendatres{} mejora a \sendados{} en al menos
+0.5\pp; (R2) en X, el límite superior del intervalo de \sendatres{} menos HGS no pasa de cero; (R3) en
+A/B/E, \sendatres{} no pierde contra \sendados{} (límite superior $\le +0.01$\pp) y queda a no más de
+$+0.10$\pp{} de HGS; (R4) en las grandes, la ventaja sobre \sendados{} se mantiene a 10\,s y \sendatres{}
+con 4\,s no es peor que \sendados{} con 10\,s; (R5) todas las corridas de \sendatres{} son válidas.
+
+\begin{leccion}[: lo que este banco ya había visto]
+Las instancias no son nuevas para \sendatres. El bucle se calibró en 7 instancias X y ya se había
+medido en 67 con otras semillas; sólo 6 (de 439 a 491 nodos) no se habían usado nunca. Esta medición
+es una réplica con semillas nuevas y configuración congelada, no una prueba en instancias nunca
+vistas. Se reportan aparte las 6 nuevas y el resultado sin las 7 de calibración.
+\end{leccion}
+
+\subsection{Resultados}
+
+Las cinco reglas se cumplieron. La corrida fue una sola sesión de 3 horas 37 minutos, sin
+interrupciones. El sentinela de velocidad (iteraciones de \sendados{} en las 41 X del banco frente a
+la medición del día anterior con el mismo binario) dio \SentinelaDos.
+
+\begin{table}[H]
+\centering
+\caption{Brecha media contra la mejor solución conocida, en las instancias donde todos los solvers del
+banco tuvieron todas sus corridas aceptadas. Misma sesión, mismo reloj, un hilo.}
+\label{tab:principal}
+\begin{tabular}{lrrrr}
+\toprule
+Banco & \sendatres & \sendados & HGS-CVRP & FILO2 \\
+\midrule
+X, 4\,s (\NXComunes{} de 100) & \TresX\,\% & \DosX\,\% & \HgsX\,\% & \textbf{\FiloX\,\%} \\
+X grandes, 10\,s (\NXGComunes{} de 32) & \textbf{\TresXG\,\%} & \DosXG\,\% & \HgsXG\,\% & \FiloXG\,\% \\
+A/B/E, 2\,s (\NABEComunes) & \TresABE\,\% & \DosABE\,\% & \textbf{\HgsABE\,\%} & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Comparaciones pareadas en X a 4\,s.}
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Contra \sendados:} \DXTresDos; mejor/empate/peor \DXTresDosCuenta{} en \DXTresDosN{} instancias.
+\item \textbf{Contra HGS:} \DXTresHgs; \DXTresHgsCuenta{} en \DXTresHgsN.
+\item \textbf{Contra FILO2:} \DXTresFilo; \DXTresFiloCuenta{} en \DXTresFiloN. Es un empate: el
+intervalo contiene al cero y FILO2 gana en más instancias.
+\end{itemize}
+Como referencia, \sendados{} contra HGS en la misma sesión: \DXDosHgs, el mismo orden que reportó la
+segunda guía ($+0.33$\pp{} en las 41 X del banco).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.95\textwidth,height=7cm,xlabel={nodos},ylabel={brecha media (\%)},
+  legend style={at={(0.5,1.03)},anchor=south,legend columns=4,draw=none},legend cell align=left,
+  grid=major,grid style={gray!20},ymin=0,ymax=7,unbounded coords=discard]
+\addplot[only marks,mark=o,mark size=1.4pt,gray] table[x=n,y=senda2]{datos3/x_senda3.dat};\addlegendentry{\sendados}
+\addplot[only marks,mark=square*,mark size=1.4pt,MidnightBlue] table[x=n,y=hgs]{datos3/x_senda3.dat};\addlegendentry{HGS-CVRP}
+\addplot[only marks,mark=triangle*,mark size=1.7pt,sendagreen] table[x=n,y=filo2]{datos3/x_senda3.dat};\addlegendentry{FILO2}
+\addplot[only marks,mark=*,mark size=1.6pt,sendared] table[x=n,y=senda3]{datos3/x_senda3.dat};\addlegendentry{\sendatres}
+\end{axis}
+\end{tikzpicture}
+\caption{Brecha media por instancia X a 4\,s (5 semillas por solver, misma sesión). \sendados{} y HGS
+se alejan de la mejor solución conocida al crecer la instancia; \sendatres{} y FILO2 se mantienen cerca
+de 1\,\%. Faltan los puntos de \sendados{} y HGS en tres instancias donde no siempre dieron solución.}
+\label{fig:x}
+\end{figure}
+
+\paragraph{Por tamaño.} La ventaja no es uniforme (Tabla~\ref{tab:tamano}).
+
+\begin{table}[H]
+\centering
+\caption{\sendatres{} menos cada solver en X a 4\,s, por tramo. Diferencia pareada en pp con IC95;
+entre paréntesis, instancias donde \sendatres{} es mejor/empata/peor.}
+\label{tab:tamano}
+\footnotesize
+\begin{tabular}{@{}p{2.8cm}p{4.0cm}p{4.0cm}p{4.0cm}@{}}
+\toprule
+Tramo & contra \sendados & contra HGS-CVRP & contra FILO2 \\
+\midrule
+101--199 nodos & \DXChicasTresDos{} (\DXChicasTresDosCuenta) & \DXChicasTresHgs{} (\DXChicasTresHgsCuenta) & \DXChicasTresFilo{} (\DXChicasTresFiloCuenta) \\
+200--499 & \DXMediasTresDos{} (\DXMediasTresDosCuenta) & \DXMediasTresHgs{} (\DXMediasTresHgsCuenta) & \DXMediasTresFilo{} (\DXMediasTresFiloCuenta) \\
+500--1001 & \DXGrandesTresDos{} (\DXGrandesTresDosCuenta) & \DXGrandesTresHgs{} (\DXGrandesTresHgsCuenta) & \DXGrandesTresFilo{} (\DXGrandesTresFiloCuenta) \\
+\midrule
+las 6 nunca usadas & \DXNuevasTresDos{} (\DXNuevasTresDosCuenta) & \DXNuevasTresHgs{} (\DXNuevasTresHgsCuenta) & \DXNuevasTresFilo{} (\DXNuevasTresFiloCuenta) \\
+sin las 7 de calibración & \DXSinDevTresDos & \DXSinDevTresHgs & \DXSinDevTresFilo \\
+\midrule
+rutas cortas ($<6$ clientes) & \DXCortasTresDos & \DXCortasTresHgs & \DXCortasTresFilo \\
+rutas largas & \DXLargasTresDos & \DXLargasTresHgs & \DXLargasTresFilo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tres lecturas:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Con menos de 200 nodos, HGS sigue delante:} \DXChicasTresHgsMedia\pp, y \sendatres{}
+pierde en \DXChicasTresHgsPeor{} de \DXChicasTresHgsN{} instancias. La ventaja sobre HGS empieza en 200
+nodos y crece con el tamaño.
+\item \textbf{Contra FILO2 depende de la forma de las rutas:} con rutas cortas \sendatres{} es mejor;
+con rutas largas FILO2 es mejor por una décima de punto.
+\item \textbf{Quitar las instancias de calibración no cambia el resultado,} y en las seis que no se
+habían usado nunca \sendatres{} gana a \sendados{} y a HGS en las seis.
+\end{itemize}
+
+\paragraph{A/B/E a 2\,s.} \sendatres{} menos \sendados: \DABETresDos{} (\DABETresDosCuenta). Las 61
+instancias tienen menos de 125 nodos, así que \sendatres{} ejecuta \sendados; la diferencia es ruido de
+reloj entre dos ejecuciones del mismo algoritmo. Contra HGS: \DABETresHgs{} (\DABETresHgsCuenta);
+HGS no pierde en ninguna. Este banco comprueba que el selector no rompe lo que ya funcionaba; no mide
+el bucle nuevo.
+
+\paragraph{Más grande en menos tiempo.} En las 32 X de 500 nodos o más, a 10\,s, \sendatres{} menos
+\sendados{} es \DXGTresDos{} (\DXGTresDosCuenta). Y \sendatres{} con 4\,s es mejor que \sendados{} con
+10\,s en las \DTresIVDosXN{} instancias comparables: \DTresIVDosX.
+
+\paragraph{Validez.} Las \TresCorridas{} corridas de \sendatres{} fueron válidas y llegaron dentro de la
+pared, lo mismo que todas las de FILO2. \sendados{} no dio solución válida en \DosFallasX{} de 500
+corridas en X a 4\,s y en \DosFallasXG{} de 96 a 10\,s; HGS, en \HgsFallasX{} y \HgsFallasXG. Todas esas
+fallas ocurren en tres instancias con rutas muy cortas, de tres a seis clientes (X-n524-k153, X-n670-k130 y
+X-n936-k151), que por eso quedan fuera de las comparaciones pareadas con \sendados{} y HGS. Excluirlas
+favorece a esos dos solvers, no a \sendatres.
+
+\begin{reproducir}
+Contrato \tsl{\HashContrato\ldots}; datos crudos \tsl{raw\_trials.jsonl} \tsl{\HashRaw\ldots}; núcleo
+medido \tsl{\HashNucleo\ldots} (\tsl{native/senda3\_core.cpp} es ese fuente con los parámetros
+fijos; da las mismas rutas). Con el repositorio:
+\tsl{python -m lattimex cvrp INSTANCIA.vrp -{}-time 4 -{}-router senda3} (X) o
+\tsl{-{}-time 2 -{}-fleet fixed -{}-router senda3} (A/B/E). \textbf{Corra una instancia a la vez}: el reloj
+es de pared, y varios procesos en paralelo reducen las iteraciones de cada uno.
+\end{reproducir}
+
+% =========================================================================
+\section{La curva de tiempo}
+\label{sec:curva}
+
+Una ventaja a 4\,s podría ser sólo un arranque más rápido. Para saber hasta dónde se sostiene dentro
+del régimen de uso, un segundo contrato midió las 32 X de 500 nodos o más a 4\,s, 30\,s y 120\,s, con
+\sendatres, HGS y FILO2 en la misma sesión, 2 réplicas y semillas nuevas (31000 y 31100). El punto de
+120\,s queda fuera del régimen de 60\,s y se reporta como referencia.
+
+\begin{table}[H]
+\centering
+\caption{Curva de tiempo en las 32 X de 500 nodos o más (flota libre, un hilo). Brecha media en las
+instancias comunes y diferencia pareada con IC95.}
+\label{tab:curva}
+\small
+\begin{tabular}{@{}lrrrp{4.0cm}p{4.0cm}@{}}
+\toprule
+Pared & \sendatres & HGS & FILO2 & \sendatres{} $-$ HGS & \sendatres{} $-$ FILO2 \\
+\midrule
+4\,s & \CurTresIV\,\% & \CurHgsIV\,\% & \CurFiloIV\,\% & \DCurHgsIV{} (\DCurHgsIVCuenta) & \DCurFiloIV{} (\DCurFiloIVCuenta) \\
+30\,s & \CurTresXXX\,\% & \CurHgsXXX\,\% & \CurFiloXXX\,\% & \DCurHgsXXX{} (\DCurHgsXXXCuenta) & \DCurFiloXXX{} (\DCurFiloXXXCuenta) \\
+120\,s & \CurTresCXX\,\% & \CurHgsCXX\,\% & \CurFiloCXX\,\% & \DCurHgsCXX{} (\DCurHgsCXXCuenta) & \DCurFiloCXX{} (\DCurFiloCXXCuenta) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.75\textwidth,height=6.2cm,xmode=log,log basis x=10,xtick={4,30,120},
+  xticklabels={4,30,120},xlabel={pared (s)},ylabel={brecha media (\%)},ymin=0,
+  legend style={at={(0.5,1.03)},anchor=south,legend columns=3,draw=none},legend cell align=left,
+  grid=major,grid style={gray!20}]
+\addplot[mark=square*,MidnightBlue,thick] table[x=t,y=hgs]{datos3/curva_tiempo.dat};\addlegendentry{HGS-CVRP}
+\addplot[mark=triangle*,sendagreen,thick] table[x=t,y=filo2]{datos3/curva_tiempo.dat};\addlegendentry{FILO2}
+\addplot[mark=*,sendared,thick] table[x=t,y=senda3]{datos3/curva_tiempo.dat};\addlegendentry{\sendatres}
+\end{axis}
+\end{tikzpicture}
+\caption{Brecha media contra el tiempo de pared en las 32 X de 500 nodos o más. La distancia entre
+\sendatres{} y HGS se reduce al dar más tiempo, sin cerrarse en el rango medido.}
+\label{fig:curva}
+\end{figure}
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Contra HGS,} el intervalo queda por debajo de cero en los tres tiempos. La ventaja se
+reduce a cerca de la mitad en cada salto: \DCurHgsIVMedia, \DCurHgsXXXMedia{} y \DCurHgsCXXMedia\pp.
+\item \textbf{En tiempo equivalente,} \sendatres{} con 4\,s es mejor que HGS con 30\,s
+(\DCruceIVHgsXXX) y \sendatres{} con 30\,s es mejor que HGS con 120\,s (\DCruceXXXHgsCXX).
+\item \textbf{Contra FILO2} es un empate a 30\,s y a 120\,s. A 4\,s el intervalo queda apenas bajo
+cero, pero el conteo es \DCurFiloIVCuenta{} y la medición de la Sección~\ref{sec:medicion}, con más
+réplicas, dio un intervalo que contiene al cero: no debe leerse como una ventaja.
+\item \textbf{FILO2 aprovecha mejor el tiempo adicional.} Con rutas largas gana en más instancias a
+120\,s (\sendatres{} mejor/empate/peor \DCurFiloLargasCXXCuenta); con rutas cortas \sendatres{}
+conserva la ventaja en los tres tiempos (\DCurFiloCortasIVMedia, \DCurFiloCortasXXXMedia{} y
+\DCurFiloCortasCXXMedia\pp).
+\end{itemize}
+
+Las 192 corridas de \sendatres{} fueron válidas; el sentinela de velocidad dio \SentinelaTres.
+
+\begin{ideaclave}
+Con el mismo reloj y un hilo, \sendatres{} entrega mejores rutas que HGS-CVRP a 4\,s desde 200 nodos,
+y a 10\,s y 30\,s en las instancias de 500 nodos o más; con FILO2 empata. La curva dice además en qué dirección cambia eso: la
+ventaja sobre HGS se reduce al dar más tiempo.
+\end{ideaclave}
+
+\begin{reproducir}
+Contrato de la curva \tsl{\HashCurva\ldots}; datos crudos \tsl{\HashRawCurva\ldots}. Mismos binarios e
+instancias que el contrato principal.
+\end{reproducir}
+
+% =========================================================================
+\section{Discusión}
+\label{sec:discusion}
+
+\paragraph{Dónde está el valor.} \sendatres{} no es un algoritmo nuevo: combina el vecindario de
+SISR~\cite{christiaens2020}, recocido simulado~\cite{kirkpatrick1983} con la temperatura medida en arcos, como en
+FILO~\cite{accorsi2021}, y la búsqueda local granular que
+\senda{} ya tenía~\cite{toth2003granular}. Lo propio es la combinación, la medición y un diseño que
+cabe en unas 200 líneas sobre el núcleo anterior. Para quien planea rutas de cientos de entregas y
+quiere la respuesta en segundos, la diferencia es práctica: en instancias de 500 a 1\,000 nodos, la
+brecha a 4\,s baja de unos 3.3\,\% a cerca de 1\,\%.
+
+\paragraph{Dentro del motor.} Desde la versión 1.2.0 el motor de LATTIMEX usa \sendatres{} como núcleo
+de ruteo. El motor no llama al núcleo como el banco: reparte el tiempo entre ruteo, acomodo
+tridimensional y reoptimización, y usa flota exacta. Conserva la regla que vuelve a \senda{} cuando hay
+menos de 6 entregas por unidad. Esta guía mide sólo el ruteo clásico; no reporta cifras del motor con
+acomodo tridimensional.
+
+\paragraph{Limitaciones.}
+(i) Régimen: presupuestos de 2 a 30\,s (y un punto a 120\,s), un hilo. No se afirma nada sobre
+presupuestos de minutos ni sobre varios hilos.
+(ii) Con menos de 200 nodos HGS-CVRP sigue siendo mejor, y en A/B/E no pierde en ninguna instancia.
+(iii) A FILO2 no se le supera; con rutas largas y más tiempo, FILO2 es mejor.
+(iv) Las instancias ya se habían usado durante el desarrollo, salvo seis.
+(v) El umbral de 125 nodos se eligió con 21 instancias y no tiene confirmación propia.
+(vi) Todas las instancias son de la familia X o de A/B/E; no hay otra familia entre 125 y 200 nodos.
+(vii) No se reporta medición con flota fija en instancias X.
+(viii) Todas las mediciones son de una sola máquina.
+
+\section{Conclusiones y trabajo futuro}
+
+\sendados{} no escalaba porque el costo de cada iteración crecía con la instancia. \sendatres{} lo
+resuelve con un bucle en sitio de cadenas vecinas, una búsqueda local periódica y un selector que
+conserva a \sendados{} donde sigue siendo mejor. Con contrato congelado y semillas nuevas, en las 100
+instancias X a 4\,s baja la brecha de \DosX\,\% a \TresX\,\%, queda por debajo de HGS-CVRP con el mismo
+reloj desde 200 nodos y empata con FILO2.
+
+\paragraph{Trabajo futuro.} Cerrar la diferencia con HGS-CVRP por debajo de 200 nodos, y repetir la
+medición en una segunda máquina y dentro del motor con acomodo tridimensional.
+
+% =========================================================================
+\section{Pruébelo en su computadora}
+\label{sec:pruebalo}
+
+\begin{verbatim}
+git clone https://github.com/Erick-MF28/lattimex.git
+cd lattimex
+pip install -r requirements.txt  # Windows sin compilador: pip install ziglang
+python -m lattimex build         # compila los núcleos y los acomodadores
+python -m lattimex probe         # huella determinista
+\end{verbatim}
+
+\paragraph{\sendatres{} en CVRPLIB.}
+\begin{verbatim}
+python -m lattimex cvrp X-n1001-k43.vrp --time 4 --router senda3 --bks 72355
+python -m lattimex cvrp X-n1001-k43.vrp --time 4 --router senda2 --bks 72355
+python -m lattimex cvrp A-n32-k5.vrp --time 2 --fleet fixed --router senda3
+\end{verbatim}
+La primera y la segunda línea comparan los dos núcleos en su máquina. En la tercera, por tener menos
+de 125 nodos, \sendatres{} ejecuta \sendados{} y lo indica en el campo \tsl{core} de la respuesta.
+
+\begin{reproducir}[: artefactos]
+\small
+\begin{tabular}{@{}p{5.2cm}p{9.3cm}@{}}
+Contrato principal & \tsl{contract.json} \tsl{\HashContrato\ldots}; \tsl{raw\_trials.jsonl} \tsl{\HashRaw\ldots} \\
+Curva de tiempo & \tsl{contract.json} \tsl{\HashCurva\ldots}; \tsl{raw\_trials.jsonl} \tsl{\HashRawCurva\ldots} \\
+Núcleo medido & \tsl{\HashNucleo\ldots}; \tsl{native/senda3\_core.cpp} es ese fuente con los parámetros fijos \\
+Figuras y cifras de este documento & \tsl{paper/datos3/} de este repositorio \\
+Artefactos completos & archivo del autor; se comparten a solicitud (\tsl{contacto@lattimex.com}) \\
+\end{tabular}
+\end{reproducir}
+
+\bibliographystyle{plain}
+\bibliography{referencias}
+
+\end{document}

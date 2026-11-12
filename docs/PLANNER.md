@@ -6,7 +6,7 @@
 2. Abra **https://lattimex.com/planner** en Chrome, Edge o Firefox.
 3. La primera vez, Chrome y Edge preguntan si lattimex.com puede *acceder a otras aplicaciones y
    servicios de este dispositivo*. Acepte: es la conexión con su servidor local.
-4. En la cabecera del Planner aparece `● Motor local · <mapa> · v1.7.0`.
+4. En la cabecera del Planner aparece `● Motor local · <mapa> · v1.8.0`.
 
 Si el servidor está apagado, el Planner muestra las instrucciones de instalación y se conecta solo en
 cuanto el servidor responde.

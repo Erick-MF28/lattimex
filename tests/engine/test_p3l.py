@@ -142,7 +142,7 @@ class R3LTest(unittest.TestCase):
 
     def test_flota_exacta_no_usa_r3l(self):
         res = er.solve(dict(peticion_cuadro(), fleet_count=2, budget_sec=1.0))
-        self.assertNotEqual(res["metrics"].get("nucleo"), "senda2+r3l")
+        self.assertFalse(str(res["metrics"].get("nucleo")).endswith("+r3l"))
         self.assertEqual(res["vehicles"], 2)
 
 

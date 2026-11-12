@@ -37,7 +37,7 @@ class CVRPTest(unittest.TestCase):
             instancia_vrp(vrp)
             inst = cvrp.read_cvrplib(vrp)
             self.assertEqual(inst.vehicle_hint, 6)
-            for router in ("senda2", "senda"):
+            for router in ("senda3", "senda2", "senda"):
                 res = cvrp.solve(inst, time_sec=0.5, seed=1, fleet="fixed", router=router)
                 self.assertTrue(res["verified"], router)
                 self.assertLessEqual(len(res["routes"]), 6)

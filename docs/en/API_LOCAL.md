@@ -53,7 +53,7 @@ Optional fields since version 1.1.0:
 | Field | Values | Effect |
 |---|---|---|
 | `fleet_mode` | `exact` (default), `up_to` | `up_to` allows using fewer vehicles than sent; on small instances (up to 60 destinations and 30 boxes per vehicle) it enables R3L, the routing search that checks the load at every step. |
-| `router` | `auto` (default), `senda2`, `senda` | Routing core. `auto` uses SENDA2 and, with fewer than 6 destinations per vehicle, the 1.0.0 SENDA core. |
+| `router` | `auto` (default), `senda3`, `senda2`, `senda` | Routing core. `auto` uses SENDA3 (since 1.2.0) and, with fewer than 6 destinations per vehicle, the 1.0.0 SENDA core. `senda3` and `senda2` are synonyms: they force the current core. |
 
 New response fields:
 

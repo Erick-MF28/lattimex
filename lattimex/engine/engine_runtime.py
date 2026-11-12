@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Motor LATTIMEX (PRIVADO — vive solo en el volumen /engine del worker).
 
-Pipeline: routing SENDA2 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
+Pipeline: routing SENDA3 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
 efectiva alpha*V, con escalera de alpha si la carga no cabe en la flota exacta)
 -> empaque 3D por ruta en la variante pedida (P3L desde 1.1.0; respaldo: ExtremePoint3D), y todo
    acomodo pasa por el verificador estricto (p3l_packer.verify)
@@ -45,10 +45,16 @@ DIR = Path(__file__).resolve().parent
 # Núcleos de ruteo. LATTIMEX_CORE2 = SENDA2 (desde 1.1.0) y LATTIMEX_CORE = SENDA (1.0.0); ambos
 # exponen la misma interfaz C. lattimex.native.configure() fija las dos rutas.
 LIB_PATH = Path(os.environ.get("LATTIMEX_CORE") or DIR / "libsenda.so")
-LIB2_PATH = Path(os.environ["LATTIMEX_CORE2"]) if os.environ.get("LATTIMEX_CORE2") else None
+# LATTIMEX_CORE3 = SENDA3 (desde 1.2.0): la misma interfaz y, con menos de 125 nodos, el mismo algoritmo
+# que SENDA2; desde 125 nodos corre el bucle de cadenas vecinas (paper/guia_senda3.pdf). Si está, ocupa
+# el lugar de SENDA2 y el motor lo informa como "senda3".
+_CORE2 = os.environ.get("LATTIMEX_CORE3") or os.environ.get("LATTIMEX_CORE2")
+LIB2_PATH = Path(_CORE2) if _CORE2 else None
+NUCLEO2 = "senda3" if os.environ.get("LATTIMEX_CORE3") else "senda2"
 CORE_SHA = hashlib.sha256((LIB2_PATH or LIB_PATH).read_bytes()).hexdigest()[:12]
-ENGINE_VERSION = "lattimex-engine-1.7.0"
-# Selección del núcleo: "auto" (predeterminado), "senda2" o "senda". En "auto" se usa SENDA2 salvo con
+ENGINE_VERSION = "lattimex-engine-1.8.0"
+# Selección del núcleo: "auto" (predeterminado), "senda3", "senda2" (sinónimos: el núcleo cargado) o "senda".
+# En "auto" se usa ese núcleo salvo con
 # menos de RUTAS_CORTAS entregas por unidad, donde SENDA 1.0 fue mejor (paper/guia_senda2.pdf, §2.4:
 # +3.0 % de SENDA2 en X con menos de 6 clientes por ruta; -0.9 % con 12 o más).
 ROUTER = os.environ.get("LATTIMEX_ROUTER", "auto").lower()
@@ -142,13 +148,13 @@ _LIB2, _MULTI2 = _load_core(LIB2_PATH) if LIB2_PATH else (None, None)
 
 
 def _elegir_nucleo(router: str | None, clientes: int, unidades: int) -> str:
-    """Nombre del núcleo a usar: 'senda2' o 'senda'."""
+    """Nombre del núcleo a usar: NUCLEO2 ('senda3' o 'senda2', según la biblioteca cargada) o 'senda'."""
     pedido = (router or ROUTER or "auto").lower()
     if _LIB2 is None or pedido == "senda":
         return "senda"
-    if pedido == "senda2":
-        return "senda2"
-    return "senda" if unidades > 0 and clientes / unidades < RUTAS_CORTAS else "senda2"
+    if pedido in ("senda2", "senda3"):
+        return NUCLEO2
+    return "senda" if unidades > 0 and clientes / unidades < RUTAS_CORTAS else NUCLEO2
 
 
 def _variant(constraints: dict) -> str:
@@ -336,8 +342,8 @@ def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None
     info = (ctypes.c_int64 * 10)()
     k_def = min(25, max(1, len(customers) - 1))
     nucleo = _elegir_nucleo(router, len(customers), int(fleet_hint))
-    lib, multi = (_LIB2, _MULTI2) if nucleo == "senda2" else (_LIB, _MULTI)
-    configs = CONFIGS2 if nucleo == "senda2" else CONFIGS
+    lib, multi = (_LIB2, _MULTI2) if nucleo == NUCLEO2 else (_LIB, _MULTI)
+    configs = CONFIGS2 if nucleo == NUCLEO2 else CONFIGS
     usar_multi = (PORTAFOLIO if portafolio is None else portafolio) and multi is not None \
         and len(customers) >= 8
     if usar_multi:
@@ -354,7 +360,7 @@ def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None
         modo = 1 if ITER_BUDGET > 0 else 0
         cfg_mode = (ctypes.c_int32 * nconf)(*([modo] * nconf))       # 0 pared, 1 iteraciones
         cfg_iters = (ctypes.c_int64 * nconf)(*([ITER_BUDGET] * nconf))
-        if nucleo == "senda2":
+        if nucleo == NUCLEO2:
             cfg_polish = (ctypes.c_int32 * nconf)(*([SENDA2_POLISH] * nconf))
             cfg_swap = (ctypes.c_int32 * nconf)(*([SENDA2_SWAP] * nconf))
             cfg_calls = (ctypes.c_int32 * nconf)(*([SENDA2_CALLS] * nconf))
@@ -945,10 +951,10 @@ def _solve_r3l(req: dict) -> dict:
         "routes": out_routes,
         "metrics": {"runtime_sec": round(time.perf_counter() - started, 2), "variant": variant, "fleet_mode": "up_to",
                     "unidades_usadas": len(out_routes), "unidades_disponibles": k,
-                    "acceso": _resumen_acceso(accesos, puertas), "nucleo": "senda2+r3l",
+                    "acceso": _resumen_acceso(accesos, puertas), "nucleo": NUCLEO2 + "+r3l",
                     "r3l": {"iters": out["iters"], "usada": True, "segundos": round(out["wall"], 2)}},
         "engine": {"version": ENGINE_VERSION, "perfil": str(req.get("perfil", "fast")), "core": CORE_SHA,
-                   "packer": "p3l", "router": "senda2+r3l"},
+                   "packer": "p3l", "router": NUCLEO2 + "+r3l"},
     }
 
 
@@ -1144,7 +1150,7 @@ def _solve_uniform(req: dict) -> dict:
                    "packer": ("p3l+" if p3l_packer.AVAILABLE else "") +
                              ("extreme-point-3d/native+gravedad" if loading3d._NATIVE is not None
                               else "extreme-point-3d/python+gravedad"),
-                   "router": ("%s-portfolio/%dx%d" % (nucleo, len(CONFIGS2 if nucleo == "senda2" else CONFIGS),
+                   "router": ("%s-portfolio/%dx%d" % (nucleo, len(CONFIGS2 if nucleo == NUCLEO2 else CONFIGS),
                                                        SEMILLAS_POR_CONFIG)
                               if PORTAFOLIO and _MULTI is not None else "%s-single" % nucleo)},
     }

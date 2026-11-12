@@ -1,8 +1,9 @@
 # Copyright (c) 2026 LATTIMEX. Licencia MIT (ver LICENSE).
 """Compilación y localización de las bibliotecas nativas del motor.
 
-Los núcleos de ruteo (native/senda2_core.cpp, por omisión desde 1.1.0, y native/senda_core.cpp,
-el de la versión 1.0.0) y los acomodadores 3D (native/p3l.cpp, por omisión desde 1.1.0, y
+Los núcleos de ruteo (native/senda3_core.cpp, por omisión desde 1.2.0: SENDA2 con el bucle de cadenas
+vecinas desde 125 nodos; native/senda2_core.cpp, el de 1.1.0; y native/senda_core.cpp, el de 1.0.0) y
+los acomodadores 3D (native/p3l.cpp, por omisión desde 1.1.0, y
 native/pack3d.cpp) se compilan en la computadora del usuario. Se usa, en este orden:
   1. el compilador indicado en la variable CXX,
   2. g++ o clang++ del sistema,
@@ -26,9 +27,11 @@ ENGINE_DIR = Path(__file__).resolve().parent / "engine"
 SUFFIX = {"Windows": ".dll", "Darwin": ".dylib"}.get(platform.system(), ".so")
 CORE_LIB = NATIVE_DIR / f"libsenda{SUFFIX}"
 CORE2_LIB = NATIVE_DIR / f"libsenda2{SUFFIX}"
+CORE3_LIB = NATIVE_DIR / f"libsenda3{SUFFIX}"
 PACK_LIB = NATIVE_DIR / f"liblattimex_pack3d{SUFFIX}"
 P3L_LIB = NATIVE_DIR / f"liblattimex_p3l{SUFFIX}"
-TARGETS = ((NATIVE_SRC / "senda2_core.cpp", CORE2_LIB), (NATIVE_SRC / "senda_core.cpp", CORE_LIB),
+TARGETS = ((NATIVE_SRC / "senda3_core.cpp", CORE3_LIB), (NATIVE_SRC / "senda2_core.cpp", CORE2_LIB),
+           (NATIVE_SRC / "senda_core.cpp", CORE_LIB),
            (NATIVE_SRC / "pack3d.cpp", PACK_LIB), (NATIVE_SRC / "p3l.cpp", P3L_LIB))
 
 
@@ -89,6 +92,8 @@ def configure() -> None:
         os.environ.setdefault("LATTIMEX_CORE", str(CORE_LIB))
     if CORE2_LIB.exists():
         os.environ.setdefault("LATTIMEX_CORE2", str(CORE2_LIB))
+    if CORE3_LIB.exists():
+        os.environ.setdefault("LATTIMEX_CORE3", str(CORE3_LIB))
     if PACK_LIB.exists():
         os.environ.setdefault("LATTIMEX_PACK3D", str(PACK_LIB))
     if P3L_LIB.exists():
@@ -99,7 +104,8 @@ def status() -> dict:
     return {
         "platform": f"{platform.system()} {platform.machine()}",
         "python": sys.version.split()[0],
-        "core": str(CORE2_LIB) if CORE2_LIB.exists() else None,
+        "core": str(CORE3_LIB) if CORE3_LIB.exists() else None,
+        "core_1_1": str(CORE2_LIB) if CORE2_LIB.exists() else None,
         "core_1_0": str(CORE_LIB) if CORE_LIB.exists() else None,
         "p3l": str(P3L_LIB) if P3L_LIB.exists() else None,
         "pack3d": str(PACK_LIB) if PACK_LIB.exists() else None,

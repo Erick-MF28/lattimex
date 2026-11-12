@@ -1,5 +1,33 @@
 # Changes
 
+## 1.2.0 — November 12, 2026
+
+A new routing core for large problems. Versions 1.0.0 and 1.1.0 remain available at their `v1.0.0` and
+`v1.1.0` tags. The measurements are in the new guide, [paper/guia_senda3.pdf](../../paper/guia_senda3.pdf)
+(in Spanish); the SENDA and SENDA2 guides are kept unchanged.
+
+**Engine changes (`lattimex-engine-1.8.0`):**
+
+- **SENDA3 routing by default** (`native/senda3_core.cpp`): a selector by size. Below 125 nodes (customers +
+  depot) SENDA2 runs unchanged; from 125 nodes on, a loop of neighboring strings modifies the solution in
+  place, so the cost of one iteration does not grow with the number of customers. The published ideas it
+  builds on are listed in [ACADEMIC_NOTES.md](ACADEMIC_NOTES.md).
+- **Measurement** (one thread, same clock, same session, new seeds, contract frozen before running): on 97
+  X instances at 4 s, SENDA3 is 0.79 % from the best known solution, SENDA2 2.03 %, HGS-CVRP 1.78 % and
+  FILO2 0.78 %. On the 32 X instances with 500 to 1,001 nodes its lead over HGS-CVRP is 2.25 points at 4 s
+  and 1.23 at 30 s. Limits: below 200 nodes HGS-CVRP is still ahead, against FILO2 it is a tie, and on
+  A/B/E with a fixed fleet (2 s) SENDA3 matches SENDA2 (0.065 % vs 0.062 %; HGS-CVRP 0.005 %).
+- **`python -m lattimex cvrp` uses SENDA3 by default.** `--router senda2` and `--router senda` run the
+  1.1.0 and 1.0.0 cores, to reproduce the earlier guides. If SENDA2 ends without a valid solution (tight
+  fixed fleet), SENDA3 spends the remaining time on the new loop.
+- **The Planner and the local API do not change.** The engine reports `senda3` in the `router` and
+  `nucleo` fields of the response; in the request, `"router": "senda3"` and `"senda2"` are synonyms (the
+  loaded core) and `"senda"` still forces the 1.0.0 one. With fewer than 6 deliveries per vehicle the
+  engine keeps using the 1.0.0 SENDA core, as in 1.1.0.
+- `python -m lattimex build` compiles five libraries (`libsenda3` is added); `native/senda2_core.cpp` is
+  unchanged and its 1.1.0 hash still holds.
+- New deterministic fingerprint (it includes the engine version).
+
 ## 1.1.0 — October 23, 2026
 
 An advance over 1.0.0: a better routing core, a new 3D packer and the integration of both. Version

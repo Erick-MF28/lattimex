@@ -53,7 +53,7 @@ Campos opcionales desde la versión 1.1.0:
 | Campo | Valores | Efecto |
 |---|---|---|
 | `fleet_mode` | `exact` (predeterminado), `up_to` | `up_to` permite usar menos unidades de las enviadas; en instancias pequeñas (hasta 60 destinos y 30 cajas por unidad) activa R3L, el ruteo que revisa la carga en cada paso. |
-| `router` | `auto` (predeterminado), `senda2`, `senda` | Núcleo de ruteo. `auto` usa SENDA2 y, con menos de 6 destinos por unidad, el núcleo SENDA de 1.0.0. |
+| `router` | `auto` (predeterminado), `senda3`, `senda2`, `senda` | Núcleo de ruteo. `auto` usa SENDA3 (desde 1.2.0) y, con menos de 6 destinos por unidad, el núcleo SENDA de 1.0.0. `senda3` y `senda2` son sinónimos: fuerzan el núcleo actual. |
 
 Campos nuevos en la respuesta:
 
