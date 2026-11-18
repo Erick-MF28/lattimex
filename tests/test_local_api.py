@@ -151,7 +151,8 @@ class LocalApiTest(unittest.TestCase):
                    "fleet_count": 2,
                    "packages": [{"id": g["tracking_code"], "node": i + 1, "dims_cm": [40, 30, 25], "weight_kg": 6}
                                 for i, g in enumerate(guides)],
-                   "constraints": {"support": True, "fragility": False, "lifo": False}, "budget_sec": 2}
+                   "constraints": {"support": True, "fragility": False, "lifo": False}, "budget_sec": 2,
+                   "router": "senda5"}
         s, job, _ = self.call("POST", "/api/engine/v1/solve", payload)
         self.assertEqual(s, 202, job)
         for _ in range(240):
@@ -162,6 +163,8 @@ class LocalApiTest(unittest.TestCase):
         self.assertEqual(st_["status"], "done", st_)
         result = st_["result"]
         self.assertTrue(result["feasible"])
+        self.assertEqual(result["metrics"]["nucleo"], "senda5")
+        self.assertEqual(result["engine"]["name"], "lattimex-engine-1.9.0")
         served = sorted(n for r in result["routes"] for n in r["sequence"])
         self.assertEqual(served, list(range(1, 13)))
         self.assertTrue(all("placements" in r for r in result["routes"]))

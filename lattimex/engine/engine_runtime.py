@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Motor LATTIMEX (PRIVADO — vive solo en el volumen /engine del worker).
 
-Pipeline: routing SENDA3 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
+Pipeline: routing SENDA5 C++ (SENDA 1.0 con pocas entregas por unidad; matriz vial + capacidad
 efectiva alpha*V, con escalera de alpha si la carga no cabe en la flota exacta)
 -> empaque 3D por ruta en la variante pedida (P3L desde 1.1.0; respaldo: ExtremePoint3D), y todo
    acomodo pasa por el verificador estricto (p3l_packer.verify)
@@ -48,12 +48,13 @@ LIB_PATH = Path(os.environ.get("LATTIMEX_CORE") or DIR / "libsenda.so")
 # LATTIMEX_CORE3 = SENDA3 (desde 1.2.0): la misma interfaz y, con menos de 125 nodos, el mismo algoritmo
 # que SENDA2; desde 125 nodos corre el bucle de cadenas vecinas (paper/guia_senda3.pdf). Si está, ocupa
 # el lugar de SENDA2 y el motor lo informa como "senda3".
-_CORE2 = os.environ.get("LATTIMEX_CORE3") or os.environ.get("LATTIMEX_CORE2")
+# SENDA5 (1.3.0) tiene prioridad; conserva la interfaz y la selección histórica de rutas cortas.
+_CORE2 = os.environ.get("LATTIMEX_CORE5") or os.environ.get("LATTIMEX_CORE3") or os.environ.get("LATTIMEX_CORE2")
 LIB2_PATH = Path(_CORE2) if _CORE2 else None
-NUCLEO2 = "senda3" if os.environ.get("LATTIMEX_CORE3") else "senda2"
+NUCLEO2 = "senda5" if os.environ.get("LATTIMEX_CORE5") else ("senda3" if os.environ.get("LATTIMEX_CORE3") else "senda2")
 CORE_SHA = hashlib.sha256((LIB2_PATH or LIB_PATH).read_bytes()).hexdigest()[:12]
-ENGINE_VERSION = "lattimex-engine-1.8.0"
-# Selección del núcleo: "auto" (predeterminado), "senda3", "senda2" (sinónimos: el núcleo cargado) o "senda".
+ENGINE_VERSION = "lattimex-engine-1.9.0"
+# Selección del núcleo: "auto" (predeterminado), "senda5", "senda3", "senda2" (sinónimos: el núcleo cargado) o "senda".
 # En "auto" se usa ese núcleo salvo con
 # menos de RUTAS_CORTAS entregas por unidad, donde SENDA 1.0 fue mejor (paper/guia_senda2.pdf, §2.4:
 # +3.0 % de SENDA2 en X con menos de 6 clientes por ruta; -0.9 % con 12 o más).
@@ -148,11 +149,11 @@ _LIB2, _MULTI2 = _load_core(LIB2_PATH) if LIB2_PATH else (None, None)
 
 
 def _elegir_nucleo(router: str | None, clientes: int, unidades: int) -> str:
-    """Nombre del núcleo a usar: NUCLEO2 ('senda3' o 'senda2', según la biblioteca cargada) o 'senda'."""
+    """Nombre del núcleo a usar: NUCLEO2 ('senda5', 'senda3' o 'senda2', según la biblioteca cargada) o 'senda'."""
     pedido = (router or ROUTER or "auto").lower()
     if _LIB2 is None or pedido == "senda":
         return "senda"
-    if pedido in ("senda2", "senda3"):
+    if pedido in ("senda2", "senda3", "senda5"):
         return NUCLEO2
     return "senda" if unidades > 0 and clientes / unidades < RUTAS_CORTAS else NUCLEO2
 
@@ -350,9 +351,10 @@ def _solve_routing(matrix, demands_map, capacity, n, seed, budget_sec, warm=None
         nconf = len(configs)
         nseeds = SEMILLAS_POR_CONFIG
         trabajos = nconf * nseeds
-        # Cada corrida recibe budget*hilos/trabajos de pared (el nucleo suma un
-        # 12% de pulido inicial): el portafolio completo cabe en budget_sec.
-        por_corrida = max(0.05, float(budget_sec) * HILOS / trabajos / 1.12)
+        # SENDA5 ya cuenta el pulido inicial dentro de cada corrida. Los núcleos
+        # anteriores conservan el descuento por ese 12 % de trabajo adicional.
+        factor_pulido = 1.0 if nucleo == "senda5" else 1.12
+        por_corrida = max(0.05, float(budget_sec) * HILOS / trabajos / factor_pulido)
         seeds = (ctypes.c_uint64 * nseeds)(*[(int(seed) + 7919 * i) & 0x7FFFFFFF for i in range(nseeds)])
         cfg_k = (ctypes.c_int32 * nconf)(*[min(c[0], k_def) for c in configs])
         cfg_mv = (ctypes.c_int32 * nconf)(*[c[1] for c in configs])

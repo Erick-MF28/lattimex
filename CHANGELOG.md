@@ -1,5 +1,25 @@
 # Cambios
 
+## 1.3.0 — 17 de noviembre de 2026
+
+**SENDA5 con reloj corregido**, motor `lattimex-engine-1.9.0`. Integra la última variante medida
+(15-nov), con búsqueda local sobre clientes reinsertados y eliminación de rutas en flota libre.
+La documentación principal es [SENDA5: resultados auditados](docs/SENDA5.md); SENDA4 queda como
+antecedente experimental.
+
+- `cvrp` usa `senda5` por omisión; conserva los núcleos anteriores mediante `--router`.
+- Se agrega `native/senda5_core.cpp` y `libsenda5`: seis bibliotecas en la compilación. Parámetros
+  fijos, sin interruptores experimentales de entorno. Los cinco fuentes anteriores no cambian.
+- El portafolio del producto cuenta el pulido inicial dentro de cada corrida; deja de descontar
+  otro 12 % al asignar presupuesto a SENDA5. Se conserva la política de rutas cortas de `auto`.
+- API: acepta `senda5`; `senda5`, `senda3` y `senda2` son alias del núcleo actual cargado, y la respuesta
+  informa `senda5` cuando corresponde. El Planner y los empacadores mantienen su funcionamiento.
+- Auditoría de 19,300 ensayos de contratos y 384 de reloj corregido; resultados actuales con
+  denominadores explícitos, BKS consultadas el 17-nov y límites de reproducibilidad.
+  No se demuestra superioridad sobre AILS-II a 4 s ni liderazgo general desde 10 s.
+- Pruebas nuevas del selector, respaldo, flota libre/fija, matriz dirigida y reloj; CI conserva
+  las pruebas de SENDA3, motor completo y API local.
+
 ## 1.2.0 — 12 de noviembre de 2026
 
 Un núcleo de ruteo nuevo para problemas grandes. Las versiones 1.0.0 y 1.1.0 siguen disponibles en sus

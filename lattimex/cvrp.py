@@ -1,10 +1,12 @@
 # Copyright (c) 2026 LATTIMEX. Licencia MIT (ver LICENSE).
-"""SENDA2 solo: CVRP clásico sobre archivos de CVRPLIB, sin carga 3D ni el resto del motor.
+"""SENDA5 y núcleos históricos: CVRP sobre archivos de CVRPLIB, sin carga 3D.
 
     python -m lattimex cvrp X-n101-k25.vrp --time 4 --seed 1
     python -m lattimex cvrp A-n32-k5.vrp --time 2 --fleet fixed --sol A-n32-k5.sol
 
-Reproduce la forma en que se midió SENDA2 frente a HGS-CVRP en paper/guia_senda2.pdf:
+SENDA5 es el núcleo por omisión desde 1.3.0; usa SENDA2 por debajo de 125 nodos.
+Ver docs/SENDA5.md para el protocolo experimental y sus diferencias con esta CLI.
+El camino SENDA2 conserva el protocolo de paper/guia_senda2.pdf:
 - presupuesto interno = 80 % del tiempo pedido (el mismo margen para todos los solvers comparados);
 - una o dos configuraciones del ALNS según las características de la instancia, más un brazo con
   penalización de capacidad; el tiempo se reparte por igual y se devuelve la mejor solución verificada;
@@ -29,6 +31,7 @@ INTERNAL_SHARE = 0.8
 # SENDA2 con el protocolo de arriba; desde el umbral, una sola trayectoria del bucle de cadenas vecinas.
 # Si SENDA2 termina sin solución válida (flota fija apretada), el bucle usa lo que queda de la pared.
 SENDA3_UMBRAL = 125
+SENDA5_UMBRAL = SENDA3_UMBRAL  # conserva el selector medido; bajo 125 corre SENDA2
 SENDA3_RESPALDO_MARGEN, SENDA3_RESPALDO_MIN = 0.05, 0.15
 
 _BASE = {"k": 15, "use_segment": 1, "use_swapstar": 1, "use_penalty": 0, "destroy_min": 0.10,
@@ -174,7 +177,7 @@ def _extra_config(f: dict) -> str:
 def _lib(router: str):
     native.configure()
     import os  # noqa: PLC0415
-    path = os.environ.get({"senda2": "LATTIMEX_CORE2", "senda3": "LATTIMEX_CORE3"}.get(router, "LATTIMEX_CORE"))
+    path = os.environ.get({"senda2": "LATTIMEX_CORE2", "senda3": "LATTIMEX_CORE3", "senda5": "LATTIMEX_CORE5"}.get(router, "LATTIMEX_CORE"))
     if not path:
         raise RuntimeError("Núcleo no compilado: ejecute `python -m lattimex build`")
     lib = ctypes.CDLL(path)
@@ -184,17 +187,18 @@ def _lib(router: str):
     fn.argtypes = [ctypes.c_int, F64, F64, I32, I32, ctypes.c_int, ctypes.c_int, ctypes.c_int, I32, ctypes.c_int, I32,
                    ctypes.c_int, U64, ctypes.c_int, I32, I32, I32, I32, I64, I32, I32, I32, F64, F64, F64, F64, I64,
                    ctypes.c_int, ctypes.c_int, ctypes.c_double, I32, ctypes.c_int, I64]
-    if router == "senda3":
-        lib.senda3_set_mode.argtypes = [ctypes.c_int]
-        lib.senda3_set_mode.restype = None
-        fn.set_mode = lib.senda3_set_mode
+    if router in ("senda3", "senda5"):
+        mode = getattr(lib, router + "_set_mode")
+        mode.argtypes = [ctypes.c_int]
+        mode.restype = None
+        fn.set_mode = mode
     return fn
 
 
-def _trayectoria_senda3(inst: Instance, time_sec: float, seed: int, fleet: str) -> dict:
+def _trayectoria_senda3(inst: Instance, time_sec: float, seed: int, fleet: str, router: str = "senda3") -> dict:
     """Una trayectoria del bucle S3 (k = 25, sin penalización), verificada en Python."""
     started = time.perf_counter()
-    fn = _lib("senda3")
+    fn = _lib(router)
     size = max([inst.depot, *inst.customers]) + 1
     xs, ys = array("d", [0.0] * size), array("d", [0.0] * size)
     for v, (x, y) in inst.coords.items():
@@ -242,35 +246,35 @@ def _trayectoria_senda3(inst: Instance, time_sec: float, seed: int, fleet: str) 
         routes.append(cur)
     ok = bool(routes) and _verify(inst, routes, k_max)
     cost = inst.cost(routes) if routes else None
-    return {"instance": inst.name, "router": "senda3", "fleet": fleet, "seed": seed, "time_sec": time_sec,
+    return {"instance": inst.name, "router": router, "fleet": fleet, "seed": seed, "time_sec": time_sec,
             "verified": ok, "cost": cost if ok else None, "routes": routes if ok else [],
-            "arms": [{"config": "s3_cadenas", "penalty": 0, "verified": ok, "cost": cost, "iterations": int(info[1])}],
+            "arms": [{"config": "s5_cadenas" if router == "senda5" else "s3_cadenas", "penalty": 0, "verified": ok, "cost": cost, "iterations": int(info[1])}],
             "wall_sec": round(time.perf_counter() - started, 3)}
 
 
-def _solve_senda3(inst: Instance, time_sec: float, seed: int, fleet: str) -> dict:
+def _solve_senda3(inst: Instance, time_sec: float, seed: int, fleet: str, router: str = "senda3") -> dict:
     started = time.perf_counter()
     if len(inst.customers) + 1 >= SENDA3_UMBRAL:
-        res, core = _trayectoria_senda3(inst, time_sec, seed, fleet), "s3"
+        res, core = _trayectoria_senda3(inst, time_sec, seed, fleet, router), "s5" if router == "senda5" else "s3"
     else:
         res, core = solve(inst, time_sec=time_sec, seed=seed, fleet=fleet, router="senda2"), "senda2"
         if not res["verified"]:
             left = time_sec - (time.perf_counter() - started) - SENDA3_RESPALDO_MARGEN
             if left >= SENDA3_RESPALDO_MIN:
                 arms = res["arms"]
-                res = _trayectoria_senda3(inst, left, seed, fleet)
+                res = _trayectoria_senda3(inst, left, seed, fleet, router)
                 res["arms"] = arms + res["arms"]
                 res["time_sec"] = time_sec
-                core = "senda2>s3"
-    res.update(router="senda3", core=core, wall_sec=round(time.perf_counter() - started, 3))
+                core = "senda2>s5" if router == "senda5" else "senda2>s3"
+    res.update(router=router, core=core, wall_sec=round(time.perf_counter() - started, 3))
     return res
 
 
-def solve(inst: Instance, time_sec: float = 4.0, seed: int = 1, fleet: str = "free", router: str = "senda3") -> dict:
+def solve(inst: Instance, time_sec: float = 4.0, seed: int = 1, fleet: str = "free", router: str = "senda5") -> dict:
     """Resuelve una instancia. fleet = 'free' (rutas ilimitadas) o 'fixed' (a lo sumo k rutas).
-    router = 'senda3' (por omisión desde 1.2.0: selector por tamaño), 'senda2' (1.1.0) o 'senda' (1.0.0)."""
-    if router == "senda3":
-        return _solve_senda3(inst, time_sec, seed, fleet)
+    router = 'senda5' (1.3.0, por omisión), 'senda3' (1.2.0), 'senda2' (1.1.0) o 'senda' (1.0.0)."""
+    if router in ("senda3", "senda5"):
+        return _solve_senda3(inst, time_sec, seed, fleet, router)
     started = time.perf_counter()
     fn = _lib(router)
     size = max([inst.depot, *inst.customers]) + 1

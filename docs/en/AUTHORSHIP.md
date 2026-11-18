@@ -11,7 +11,8 @@
 Independent development: the engine is the product of the rights holder's own line of research,
 with no institutional affiliation and no assignment of rights, employment or institutional contract
 affecting the code. Version 1.0.0 of this repository contained the same engine that ran in production in the
-LATTIMEX Planner (1.6.0); version 1.1.0 brings engine 1.7.0 and version 1.2.0 engine 1.8.0, described below.
+LATTIMEX Planner (1.6.0); version 1.1.0 brings engine 1.7.0, version 1.2.0 engine 1.8.0, and the current
+version 1.3.0 engine 1.9.0, described below.
 
 ## Third-party code incorporated
 
@@ -41,6 +42,17 @@ name. The published ideas that the engine implements are cited in
 [ACADEMIC_NOTES.md](ACADEMIC_NOTES.md).
 
 ## Versions and fingerprints
+
+### Version 1.3.0
+
+Engine `lattimex-engine-1.9.0`, corrected-clock SENDA5. LF source `native/senda5_core.cpp`:
+SHA-256 `c362341b15b70dddb0323331a8dc0cd94c2db5396aa53edbf214a10500a0277e`. The five historical native sources are preserved.
+Derived from the November 15 measured candidate, with fixed parameters and the clock extended
+to the parallel portfolio. [Results and limits](SENDA5.md). Earlier similarity tables apply only
+to the files and dates they identify.
+
+zig 0.16.0/libc++ fingerprint: `ca85b20a6a075bff` (4 routes, 8,857 m, 3,000 iterations; Windows/Python 3.11.9).
+g++/libstdc++ fingerprint: pending this version's CI; the 1.2.0 fingerprint is not reused.
 
 ### Version 1.2.0
 
