@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 390" width="960" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<title>Brecha media frente a la mejor solución conocida (menos es mejor)</title>
+<text x="12" y="28" font-size="17" font-weight="600" fill="#1f2328">Brecha media frente a la mejor solución conocida (menos es mejor)</text>
+<text x="12" y="52" font-size="12.5" fill="#5f6779">CVRP · 98 instancias X comunes a las 7 herramientas · 4 s calibrados · 1 hilo · 1 corrida por instancia</text>
+<line x1="168.0" y1="84" x2="168.0" y2="334" stroke="#d0d7de" stroke-width="1"/>
+<text x="168.0" y="352" font-size="12" text-anchor="middle" fill="#5f6779">0 %</text>
+<line x1="343.0" y1="84" x2="343.0" y2="334" stroke="#d0d7de" stroke-width="1"/>
+<text x="343.0" y="352" font-size="12" text-anchor="middle" fill="#5f6779">2 %</text>
+<line x1="518.0" y1="84" x2="518.0" y2="334" stroke="#d0d7de" stroke-width="1"/>
+<text x="518.0" y="352" font-size="12" text-anchor="middle" fill="#5f6779">4 %</text>
+<line x1="693.0" y1="84" x2="693.0" y2="334" stroke="#d0d7de" stroke-width="1"/>
+<text x="693.0" y="352" font-size="12" text-anchor="middle" fill="#5f6779">6 %</text>
+<line x1="868.0" y1="84" x2="868.0" y2="334" stroke="#d0d7de" stroke-width="1"/>
+<text x="868.0" y="352" font-size="12" text-anchor="middle" fill="#5f6779">8 %</text>
+<text x="150" y="111.5" font-size="13.5" text-anchor="end" font-weight="700" fill="#1f2328">SENDA5</text>
+<path d="M168 98.0 h42.724999999999994 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-42.724999999999994 z" fill="#2747D9"/>
+<text x="222.725" y="111.5" font-size="13" font-weight="700" fill="#1f2328">0,534 %</text>
+<text x="150" y="145.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">AILS-II</text>
+<path d="M168 132.0 h46.837500000000006 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-46.837500000000006 z" fill="#c3c9d6"/>
+<text x="226.8375" y="145.5" font-size="13" font-weight="400" fill="#1f2328">0,581 %</text>
+<text x="150" y="179.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">FILO2</text>
+<path d="M168 166.0 h57.86250000000001 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-57.86250000000001 z" fill="#c3c9d6"/>
+<text x="237.8625" y="179.5" font-size="13" font-weight="400" fill="#1f2328">0,707 %</text>
+<text x="150" y="213.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">HGS</text>
+<path d="M168 200.0 h144.22500000000002 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-144.22500000000002 z" fill="#c3c9d6"/>
+<text x="324.225" y="213.5" font-size="13" font-weight="400" fill="#1f2328">1,694 %</text>
+<text x="150" y="247.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">PyVRP</text>
+<path d="M168 234.0 h189.375 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-189.375 z" fill="#c3c9d6"/>
+<text x="369.375" y="247.5" font-size="13" font-weight="400" fill="#1f2328">2,210 %</text>
+<text x="150" y="281.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">OR-Tools</text>
+<path d="M168 268.0 h679.375 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-679.375 z" fill="#c3c9d6"/>
+<text x="859.375" y="281.5" font-size="13" font-weight="400" fill="#1f2328">7,810 %</text>
+<text x="150" y="315.5" font-size="13.5" text-anchor="end" font-weight="400" fill="#5f6779">Vecino más cercano</text>
+<path d="M168 302.0 h736 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-736 z" fill="#c3c9d6"/>
+<line x1="741.5" y1="323.0" x2="749.5" y2="299.0" stroke="#ffffff" stroke-width="4"/>
+<line x1="749.5" y1="323.0" x2="757.5" y2="299.0" stroke="#ffffff" stroke-width="4"/>
+<text x="900" y="315.5" font-size="13" text-anchor="end" font-weight="600" fill="#1f2328">25,105 %</text>
+<text x="12" y="380" font-size="12.5" fill="#5f6779">Frente a AILS-II la diferencia no es estadísticamente significativa.</text>
+</svg>
