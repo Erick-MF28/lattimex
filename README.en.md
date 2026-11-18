@@ -1,204 +1,101 @@
-# LATTIMEX
+<p><img src="docs/img/lattimex-marca.svg" width="245" alt="LATTIMEX · Rutas que caben."></p>
 
-**Vehicle routing with 3D load placement, on your own computer.**
+# Plan routes and loads together
 
-[Español](README.md) · English
+Choose which vehicle handles each delivery, the order of its stops and where to place each box for unloading. The engine runs on your computer. The [Planner](https://lattimex.com/planner) displays the result in your browser.
 
-[![Version](https://img.shields.io/github/v/release/Erick-MF28/lattimex?label=version&color=2747d9)](https://github.com/Erick-MF28/lattimex/releases/latest)
-[![License: MIT](https://img.shields.io/badge/engine-MIT-2747d9)](LICENSE)
-[![Web](https://img.shields.io/badge/web-lattimex.com-0d1628)](https://lattimex.com)
-[![Planner](https://img.shields.io/badge/Planner-lattimex.com%2Fplanner-f59e0b)](https://lattimex.com/planner)
+**[See the Querétaro example](#from-orders-to-dispatch) · [Install the engine](#install-the-engine) · [Discuss an implementation](#implementation)**
 
-LATTIMEX decides which vehicle serves each delivery, in what order, and where every box goes inside
-the vehicle, on the real road network of your city. This repository contains the **optimization
-engine**, the **local server** and the **map builder**. The graphical interface is the
-[LATTIMEX Planner](https://lattimex.com/planner), which opens in the browser and works with the
-engine you run yourself: **your data never leaves your computer**.
+![Left: stops grouped by route in Querétaro. Right: boxes arranged in demo van 1, from the cab to the door.](docs/img/planner-rutas-y-carga.webp)
 
-[![LATTIMEX: fewer kilometers, better loading, only the fleet you need](docs/img/lattimex-web.jpg)](https://lattimex.com)
+*The Planner includes this example with 300 synthetic deliveries, six vans and five operators. Map © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright).*
 
-<p align="center"><a href="https://lattimex.com"><b>Discover LATTIMEX at lattimex.com →</b></a></p>
+[Español](README.md) · English · [![Latest published release](https://img.shields.io/github/v/release/Erick-MF28/lattimex?label=latest%20published%20release&color=2747d9)](https://github.com/Erick-MF28/lattimex/releases/latest)
 
-> **Version 1.3.0** (engine `lattimex-engine-1.9.0`): **SENDA5 with the corrected clock**.
-> At a calibrated four-second wall budget, one run per X instance, its mean gap is **0.534 %**
-> over the 98 instances solved by all seven tools (current CVRPLIB bounds, November 17, 2026).
-> It has a lower gap than FILO2, HGS, PyVRP and OR-Tools; **no significant difference against
-> AILS-II**. Across its own 100 solutions the gap is 0.549 %. This is CVRP evidence, not a 3D benchmark.
-> Below 125 nodes it retains SENDA2. P3L and the Planner workflow are preserved.
-> [Audited results and limitations](docs/en/SENDA5.md) · [Changelog](docs/en/CHANGELOG.md).
-> Check your installed version: `python -m lattimex --version`.
+## From orders to dispatch
 
-## Try it in five minutes
+1. **Load the orders and fleet.** Enter delivery locations, package dimensions and weights, and the capacity of each vehicle.
+2. **Review routes and loads.** Select a vehicle on the map to see its stops, distance and cost. The 3D view shows which boxes sit by the door and which deliveries require moving other boxes.
+3. **Give the driver the route sheet.** It lists the stops in order, the packages for each delivery and the unloading instructions.
 
-Requirements: Python 3.10 or later and a C++ compiler (g++ or clang++). On Windows without a
-compiler, `pip install ziglang` installs a portable one that LATTIMEX picks up automatically (clone
-into a short path such as `C:\lattimex`: `ziglang` fails with paths longer than 260 characters).
+![Example route sheet showing stops and unloading instructions.](docs/img/planner-hoja-ruta.webp)
+
+<details>
+<summary>See all example screens</summary>
+
+[Route map](docs/img/planner-rutas.webp) · [Route detail](docs/img/planner-ruta-detalle.webp) · [3D loading](docs/img/planner-acomodo-3d.webp) · [Indicators](docs/img/planner-indicadores.webp) · [Fleet](docs/img/planner-flota.webp) · [Orders](docs/img/planner-guias.webp)
+
+</details>
+
+## What SENDA5 adds
+
+The **upcoming 1.3.0 release** integrates SENDA5 into engine 1.9.0. Its corrected clock counts initial polishing against each run’s time budget.
+
+In the CVRP routing benchmark with a calibrated four-second budget, **SENDA5 solved all 100 instances**. Its mean gap to the best known solutions was **0.549%**. Each instance ran once, on one thread with an unrestricted fleet. On the 98 instances solved by all seven tools, SENDA5’s mean gap was **0.534%**. The difference against AILS-II was not statistically significant. [Results, measured times and limitations](docs/en/SENDA5.md) · [Changelog](docs/en/CHANGELOG.md)
+
+## Install the engine
+
+Building this branch from source requires Python 3.10 or later and a C++ compiler. On Windows, use a short path such as `C:\lattimex`. If you need a compiler, install one with `python -m pip install ziglang`.
 
 ```bash
-git clone https://github.com/Erick-MF28/lattimex.git
+git clone --branch release-1.3.0 https://github.com/Erick-MF28/lattimex.git
 cd lattimex
-pip install -r requirements.txt        # Windows without a compiler: pip install ziglang
-python -m lattimex build               # compiles the engine and the 3D packer
+python -m pip install -r requirements.txt
+python -m lattimex build
 python -m lattimex map --bbox 20.47,-100.52,20.82,-100.22 --name queretaro
-python -m lattimex serve               # http://127.0.0.1:8765
+python -m lattimex serve
 ```
 
-Open **https://lattimex.com/planner** in Chrome, Edge or Firefox. The first time, the browser asks
-for permission to access services on this device: accept it. In **Guías** (shipments), the
-**Cargar ejemplo** button adds 300 synthetic deliveries in Querétaro, six vans and five drivers; in
-**Planificación** (planning), a single button, **Optimizar**, computes the routes and the placement
-of every box. The Planner interface is currently in Spanish.
+Leave the server running and open the [Planner](https://lattimex.com/planner). Allow access to the local device if your browser asks. Under **Guías** (orders), choose **Cargar ejemplo** (load example). Under **Planificación** (planning), choose **Optimizar** (optimize). When the plan is ready, select a van to inspect its stops and load.
 
-**Your data stays where you decide.** Fleet, shipments, instances and runs are stored in
-`data/lattimex.sqlite3`; if you close the Planner, your last operation is there when you come back,
-and shipments you captured but had not saved yet are recovered automatically. To work with another
-folder (for example, one per customer or a shared network folder):
+<details>
+<summary>Desktop launcher, data folder and diagnostics</summary>
 
-```bash
-python -m lattimex serve --data D:\operations\customer_a
-```
+After building, run `python -m lattimex app` to start the server and open the Planner from a desktop window. See [Windows packaging](packaging/windows/README.md). To use a separate data folder, start the server with `python -m lattimex serve --data D:\operations\client_a`. Check the installation with `python -m lattimex doctor` and the installed version with `python -m lattimex --version`.
 
-`python -m lattimex doctor` checks the installation; `python -m lattimex probe` prints the
-engine fingerprint. Version 1.3.0 fingerprints and historical references are recorded in
-[Authorship](docs/en/AUTHORSHIP.md). Fingerprints depend on the C++ standard library.
+</details>
 
-## Three ways to use the engine
+<a id="implementation"></a>
 
-Since version 1.1.0 each piece can be tried on its own:
+## Implementation for your fleet
 
-```bash
-python -m lattimex cvrp X-n1001-k43.vrp --time 4    # SENDA5 alone, classic CVRP (CVRPLIB files)
-python -m lattimex pack boxes.json                  # the 3D packer alone, for one route
-python -m lattimex serve                            # the full engine, for the Planner
-```
+| Question | How it works |
+|---|---|
+| Where is our data stored? | Orders, fleet records and plans stay on the customer’s computer. The server listens on `127.0.0.1` and checks the origin and a session token for data requests. [Security](docs/en/SECURITY.md) |
+| Can it work with our existing system? | A pilot can start with a CSV export from your ERP, WMS or TMS. A local program can request an optimization and retrieve the plan through the API. We check field mappings against a sample file. [Local API](docs/en/API_LOCAL.md) |
+| Can it connect to our GPS platform? | To send stops to a GPS platform, we review its formats and permissions. For live tracking, we assess the development work and scope with the provider. |
+| How do we get a quote? | The engine is MIT-licensed. To estimate installation, integration and training, tell us your number of depots, vehicles and deliveries on a typical day, and which systems you want to connect. |
 
-- **SENDA5 alone** selects the algorithm by size and validates coverage, capacity and cost.
-  `--router senda3`, `--router senda2` and `--router senda` select the historical CLI cores.
-  The CLI allocates 80% of `--time` to the core; the [four-second experiment](docs/en/SENDA5.md)
-  uses a separate calibrated timing protocol.
-- **The packer alone** (P3L) takes a JSON with the container and the boxes (`stop` = delivery order)
-  and returns the position of each box and whether the packing meets support, fragility and unloading
-  order.
-- **The full engine** routes with SENDA5, packs with P3L keeping the unloading order and, if a route
-  does not fit that way, says so in the response (`lifo_estricto`, `advertencias`). With
-  `"fleet_mode": "up_to"` it may use fewer vehicles than available.
+**Implementation contact:** [contacto@lattimex.com](mailto:contacto@lattimex.com) · [lattimex.com](https://lattimex.com)
 
-**Rather not use the terminal?** `python -m lattimex app` opens a window that starts the engine,
-prepares your city map and opens the Planner. The same window is packaged as a Windows application
-with an installer and no prerequisites: see [packaging/windows](packaging/windows/README.md).
-
-## What it looks like
-
-Planner screenshots with the bundled example: 300 deliveries in Querétaro, six vans and five
-drivers.
-
-**Routes on real streets.** One color per route on the
-[OpenStreetMap](https://www.openstreetmap.org/copyright) map and, on the right, each vehicle with its
-stops, kilometers, driver and cost.
-
-<img src="docs/img/planner-rutas.webp" alt="Six routes on the map of Querétaro and the vehicle list" width="100%">
-
-**One route at a time.** Selecting a route frames it on the map; the panel shows its cost breakdown
-and the sequence of stops.
-
-<img src="docs/img/planner-ruta-detalle.webp" alt="Selected route with its sequence of stops" width="100%">
-
-**3D load placement.** Every box inside the vehicle, from the cab to the door in reverse delivery
-order, together with the driver, the cost breakdown and the unloading plan.
-
-<img src="docs/img/planner-acomodo-3d.webp" alt="3D placement diagram with cost and unloading plan" width="100%">
-
-**Indicators for the whole run and for each route.**
-
-<img src="docs/img/planner-indicadores.webp" alt="Indicators: routes, deliveries, kilometers, cost and utilization" width="100%">
-
-**Route sheet for the driver**, with dimensions, weight, cost per delivery, unloading door and which
-boxes to set aside first.
-
-<img src="docs/img/planner-hoja-ruta.webp" alt="Printable route sheet" width="100%">
-
-**Fleet and shipments.** Interior dimensions, doors, maximum load and costs of each vehicle;
-shipments entered by hand, from CSV or with the example.
-
-<img src="docs/img/planner-flota.webp" alt="Fleet cards" width="100%">
-
-<img src="docs/img/planner-guias.webp" alt="Shipments loaded for planning" width="100%">
-
-Map data in the screenshots: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright),
-available under ODbL 1.0.
-
-## How it works
+## Development and research
 
 ```text
- lattimex.com/planner  ──(interface only)──►  browser
-                                                │  http://127.0.0.1:8765
-                                                ▼
-                         ┌───────────── your computer ─────────────┐
-                         │  local server  →  SENDA2 (C++)          │
-                         │  SQLite store  →  P3L packer (C++)      │
-                         │  own map       →  verifier              │
-                         └─────────────────────────────────────────┘
+Planner (browser)
+  └─ Local server
+       ├─ Road map and operational data
+       └─ SENDA5 routing → P3L 3D loading → verification
 ```
 
-1. **Own map.** `python -m lattimex map` builds, once, the road graph of your city from
-   OpenStreetMap. Distances and routes are computed on real streets, without external services.
-2. **Routing.** The routing core, SENDA2, is SENDA (*Single-trajectory ENgine with Destroy-and-repair
-   Adaptive search*) with a cached repair and a polish cap: it follows a single search trajectory per
-   run, with no population and no crossover, builds routes, improves them with granular local search
-   and restructures them with an adaptive large neighborhood search (ALNS), in a portfolio of parallel
-   runs. With few deliveries per vehicle it uses the 1.0.0 SENDA core.
-3. **3D loading.** The P3L packer places each box respecting support, fragility and unloading order,
-   and a strict checker reviews every packing; if something does not fit, a mediator readjusts the
-   routes with the fixed fleet and, as a last resort, relaxes that route's unloading order and reports
-   it.
-4. **Verification.** An independent verifier rechecks distances, capacity, coverage and the geometry
-   of every box before the plan is delivered.
+In automatic mode the full engine uses SENDA 1.0 for fewer than six destinations per vehicle. In standalone CVRP, the SENDA5 selector starts with SENDA2 below 125 nodes. [Architecture](docs/en/ARCHITECTURE.md) · [Maps](docs/en/MAPS.md) · [Planner](docs/en/PLANNER.md)
 
-Details in [docs/en/ARCHITECTURE.md](docs/en/ARCHITECTURE.md), [docs/en/MAPS.md](docs/en/MAPS.md) and
-[docs/en/SECURITY.md](docs/en/SECURITY.md).
-
-## Learn how the engine works
-
-The educational guide [**paper/senda_guide_en.pdf**](paper/senda_guide_en.pdf) explains from
-scratch, with worked examples, every component of SENDA, its computational complexity, how it was
-evaluated against reference solvers from the literature and which evaluation mistakes to avoid. It
-ends with a section for repeating the measurements on your computer. The Spanish original is
-[paper/guia_senda.pdf](paper/guia_senda.pdf).
-
-The second guide, [**paper/senda2_guide_en.pdf**](paper/senda2_guide_en.pdf) (version 1.1.0), reports
-the advance in the same spirit: SENDA2 against HGS-CVRP and FILO2, how a packer was measured against the
-published optima of Tamke et al. (2026), which 1.0.0 defects that measurement uncovered and how routing
-and packing were integrated. Spanish original: [paper/guia_senda2.pdf](paper/guia_senda2.pdf). The
-programs used for comparison are not part of this repository; notes and references are in [docs/en/ACADEMIC_NOTES.md](docs/en/ACADEMIC_NOTES.md).
-
-The third guide, [**paper/guia_senda3.pdf**](paper/guia_senda3.pdf) (version 1.2.0, in Spanish), explains why
-SENDA2 did not scale, how the SENDA3 loop works and why the engine picks the algorithm by size, and measures
-it against SENDA2, HGS-CVRP and FILO2 with budgets of seconds, including what does not favor it.
-
-## What is in this repository
-
-| Folder | Contents |
+| To | Resource |
 |---|---|
-| `native/` | SENDA5 (`senda5_core.cpp`, default), SENDA3 (1.2.0), SENDA2 (1.1.0) and SENDA (1.0.0); P3L (`p3l.cpp`, default) and extreme-point (`pack3d.cpp`) packers |
-| `lattimex/engine/` | Engine pipeline: effective capacity, 3D packing and strict checker, fixed-fleet mediation, R3L ("up to k" fleet on small instances), unloading plan by door |
-| `lattimex/cvrp.py` | SENDA5 alone (or historical cores) on CVRPLIB files (`python -m lattimex cvrp`) |
-| `lattimex/server.py` | Local server for the Planner (listens on 127.0.0.1 only) |
-| `lattimex/maps.py` | Builds your own map from OpenStreetMap |
-| `tests/` | Engine tests, C++/Python equivalence of the packer and server tests |
-| `paper/` | Educational guides 1 (SENDA, 1.0.0) and 2 (SENDA2 and 3D loading, 1.1.0), in Spanish and English, and 3 (SENDA3, 1.2.0), in Spanish (LaTeX and PDF) |
-| `packaging/windows/` | Windows application and installer (start window, no terminal) |
-| `docs/` | Architecture, Planner connection, security, maps, local API and academic notes (`docs/en/` in English) |
+| Run routing or packing independently | `python -m lattimex cvrp instance.vrp --time 4` · `python -m lattimex pack boxes.json`. The CLI allocates 80% of `--time` to the core. [Benchmark protocol](docs/en/SENDA5.md) |
+| Review measurements and methods | [SENDA5 audit](docs/senda5_auditoria.json) · [Academic notes](docs/en/ACADEMIC_NOTES.md) · Historical guides to [SENDA](paper/senda_guide_en.pdf), [SENDA2](paper/senda2_guide_en.pdf) and [SENDA3](paper/guia_senda3.pdf) (last guide in Spanish) |
+| Explore the code | [Native cores](native/) · [Engine](lattimex/engine/) · [Server](lattimex/server.py) · [Tests](tests/) |
 
-Source code identifiers and comments are mostly in Spanish.
-
-## Tests
+<details>
+<summary>Run the tests and get the engine fingerprint</summary>
 
 ```bash
-python -m unittest discover -s tests/engine        # engine, packer and `cvrp`/`pack` tests
-python -m unittest tests.test_local_api -v         # full flow and server defenses
-python tests/native/test_pack3d_equivalencia.py    # 72 cases: C++ identical to Python (~10 min)
-python -m lattimex probe                           # deterministic engine fingerprint
+python -m unittest discover -s tests/engine
+python -m unittest tests.test_senda3 tests.test_senda5 tests.test_local_api -v
+python tests/native/test_pack3d_equivalencia.py
+python -m lattimex probe
 ```
+
+</details>
 
 ## Licenses
 
@@ -216,14 +113,6 @@ python -m lattimex probe                           # deterministic engine finger
   provenance: [docs/en/AUTHORSHIP.md](docs/en/AUTHORSHIP.md). Changes:
   [docs/en/CHANGELOG.md](docs/en/CHANGELOG.md).
 
-## Implementation services
-
-The engine is offered free of charge under MIT. Implementation, configuration, integration and
-training services are quoted separately.
-
-Would you rather have us install it and integrate it with your operation (map, fleet, loading rules,
-ERP/WMS/TMS, training)? Visit [lattimex.com](https://lattimex.com) or write to
-**contacto@lattimex.com**.
 
 ## Donations
 
