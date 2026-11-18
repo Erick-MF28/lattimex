@@ -19,23 +19,14 @@ engine you run yourself: **your data never leaves your computer**.
 
 <p align="center"><a href="https://lattimex.com"><b>Discover LATTIMEX at lattimex.com →</b></a></p>
 
-> **Current version: 1.2.0** (engine `lattimex-engine-1.8.0`). New: **SENDA3**, the routing core for large
-> problems. Under the same clock and a single thread, on the X benchmark at 4 s it is 0.79 % from the best
-> known solution (SENDA2: 2.03 %; HGS-CVRP: 1.78 %; FILO2: 0.78 %) and it solves a thousand points in
-> seconds. Below 125 nodes SENDA2 still runs, and below 200 nodes HGS-CVRP is still ahead. The Planner is
-> used as before: only the engine changes. Details in the [SENDA3 guide](paper/guia_senda3.pdf) (in Spanish).
->
-> Kept from 1.1.0:
-> - **SENDA2**, a better routing core: +0.33 gap points from HGS-CVRP on the X instances and +0.07 on
->   A/B/E, under the same clock.
-> - **P3L**, a new 3D packer that produces more valid loads, with strict, verified unloading order.
-> - **Clear warnings:** if a route does not fit under the unloading order, the engine reports it instead
->   of relaxing it silently.
->
-> Details in the [changelog](docs/en/CHANGELOG.md) and the [SENDA2 guide](paper/senda2_guide_en.pdf).
-> To check which version you have installed: `python -m lattimex --version`. Version 1.0.0 is still
-> available under the [`v1.0.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.0.0) tag, and 1.1.0
-> under [`v1.1.0`](https://github.com/Erick-MF28/lattimex/releases/tag/v1.1.0).
+> **Version 1.3.0** (engine `lattimex-engine-1.9.0`): **SENDA5 with the corrected clock**.
+> At a calibrated four-second wall budget, one run per X instance, its mean gap is **0.534 %**
+> over the 98 instances solved by all seven tools (current CVRPLIB bounds, November 17, 2026).
+> It has a lower gap than FILO2, HGS, PyVRP and OR-Tools; **no significant difference against
+> AILS-II**. Across its own 100 solutions the gap is 0.549 %. This is CVRP evidence, not a 3D benchmark.
+> Below 125 nodes it retains SENDA2. P3L and the Planner workflow are preserved.
+> [Audited results and limitations](docs/en/SENDA5.md) · [Changelog](docs/en/CHANGELOG.md).
+> Check your installed version: `python -m lattimex --version`.
 
 ## Try it in five minutes
 
@@ -67,32 +58,28 @@ folder (for example, one per customer or a shared network folder):
 python -m lattimex serve --data D:\operations\customer_a
 ```
 
-`python -m lattimex doctor` checks the installation and `python -m lattimex probe` prints the
-engine's deterministic fingerprint. It depends on the C++ standard library used to build it. Version
-1.2.0: `f96302436914b57d` with zig/libc++ (the Windows installer and `pip install ziglang`), and
-`fb7317df831e8588` with g++/libstdc++ (Linux and MinGW; the repository's CI publishes it for every version). If your build
-gives the fingerprint of its library, it computes exactly what the published engine computes. Version
-1.1.0 fingerprints were `1102c21c0192b381` (zig/libc++) and `78f0de0f9d88d82b` (g++/libstdc++), and
-version 1.0.0's, `6457b2dd44660773` and `285bf1758e5dd6a1`; since 1.1.0 the fingerprint includes the
-engine version, so it never matches another version's.
+`python -m lattimex doctor` checks the installation; `python -m lattimex probe` prints the
+engine fingerprint. Version 1.3.0 fingerprints and historical references are recorded in
+[Authorship](docs/en/AUTHORSHIP.md). Fingerprints depend on the C++ standard library.
 
 ## Three ways to use the engine
 
 Since version 1.1.0 each piece can be tried on its own:
 
 ```bash
-python -m lattimex cvrp X-n1001-k43.vrp --time 4    # SENDA3 alone, classic CVRP (CVRPLIB files)
+python -m lattimex cvrp X-n1001-k43.vrp --time 4    # SENDA5 alone, classic CVRP (CVRPLIB files)
 python -m lattimex pack boxes.json                  # the 3D packer alone, for one route
 python -m lattimex serve                            # the full engine, for the Planner
 ```
 
-- **SENDA3 alone** picks the algorithm by size and verifies every solution as in the comparison of guide
-  3: against HGS-CVRP, −0.99 gap points on 97 X instances (4 s) and +0.06 on 61 A/B/E (2 s, fixed fleet).
-  `--router senda2` or `--router senda` run the cores of the previous versions.
+- **SENDA5 alone** selects the algorithm by size and validates coverage, capacity and cost.
+  `--router senda3`, `--router senda2` and `--router senda` select the historical CLI cores.
+  The CLI allocates 80% of `--time` to the core; the [four-second experiment](docs/en/SENDA5.md)
+  uses a separate calibrated timing protocol.
 - **The packer alone** (P3L) takes a JSON with the container and the boxes (`stop` = delivery order)
   and returns the position of each box and whether the packing meets support, fragility and unloading
   order.
-- **The full engine** routes with SENDA3, packs with P3L keeping the unloading order and, if a route
+- **The full engine** routes with SENDA5, packs with P3L keeping the unloading order and, if a route
   does not fit that way, says so in the response (`lifo_estricto`, `advertencias`). With
   `"fleet_mode": "up_to"` it may use fewer vehicles than available.
 
@@ -192,9 +179,9 @@ it against SENDA2, HGS-CVRP and FILO2 with budgets of seconds, including what do
 
 | Folder | Contents |
 |---|---|
-| `native/` | Routing cores SENDA3 (`senda3_core.cpp`, default), SENDA2 (`senda2_core.cpp`, version 1.1.0) and SENDA (`senda_core.cpp`, version 1.0.0); 3D packers P3L (`p3l.cpp`, default) and extreme points (`pack3d.cpp`, version 1.0.0) |
+| `native/` | SENDA5 (`senda5_core.cpp`, default), SENDA3 (1.2.0), SENDA2 (1.1.0) and SENDA (1.0.0); P3L (`p3l.cpp`, default) and extreme-point (`pack3d.cpp`) packers |
 | `lattimex/engine/` | Engine pipeline: effective capacity, 3D packing and strict checker, fixed-fleet mediation, R3L ("up to k" fleet on small instances), unloading plan by door |
-| `lattimex/cvrp.py` | SENDA3 alone (or SENDA2, or SENDA) on CVRPLIB files (`python -m lattimex cvrp`) |
+| `lattimex/cvrp.py` | SENDA5 alone (or historical cores) on CVRPLIB files (`python -m lattimex cvrp`) |
 | `lattimex/server.py` | Local server for the Planner (listens on 127.0.0.1 only) |
 | `lattimex/maps.py` | Builds your own map from OpenStreetMap |
 | `tests/` | Engine tests, C++/Python equivalence of the packer and server tests |

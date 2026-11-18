@@ -11,7 +11,8 @@
 Desarrollo independiente: el motor es producto de una línea de investigación propia del titular,
 sin afiliación institucional ni cesión de derechos, contrato laboral o institucional que afecte al
 código. La versión 1.0.0 de este repositorio contenía el mismo motor que corría en producción en el
-LATTIMEX Planner (1.6.0); la versión 1.1.0 trae el motor 1.7.0 y la 1.2.0, el motor 1.8.0, descritos abajo.
+LATTIMEX Planner (1.6.0); la versión 1.1.0 trae el motor 1.7.0, la 1.2.0 el motor 1.8.0 y la actual
+1.3.0 el motor 1.9.0, descritos abajo.
 
 ## Código de terceros incorporado
 
@@ -41,6 +42,17 @@ motores por su nombre. Las ideas publicadas que el motor implementa se citan en
 [docs/ACADEMIC_NOTES.md](docs/ACADEMIC_NOTES.md).
 
 ## Versiones y huellas
+
+### Versión 1.3.0
+
+Motor `lattimex-engine-1.9.0`, núcleo SENDA5 con reloj corregido. Fuente LF
+`native/senda5_core.cpp`: SHA-256 `c362341b15b70dddb0323331a8dc0cd94c2db5396aa53edbf214a10500a0277e`. Los cinco fuentes nativos anteriores se conservan.
+Procede del candidato medido el 15-nov, con parámetros fijados y extensión del reloj al portafolio.
+[Resultados y límites](docs/SENDA5.md). Las tablas de similitud de versiones anteriores sólo
+describen los archivos y las fechas allí indicados.
+
+Huella zig 0.16.0/libc++: `ca85b20a6a075bff` (4 rutas, 8,857 m, 3,000 iteraciones; Windows/Python 3.11.9).
+Huella g++/libstdc++: pendiente del CI de esta versión; no se reutiliza la de 1.2.0.
 
 ### Versión 1.2.0
 

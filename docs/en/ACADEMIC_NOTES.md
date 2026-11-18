@@ -15,14 +15,21 @@ results can reproduce them on their own computer with the instructions below.
 | Penalized infeasibility | Solutions that exceed capacity may be explored with a penalty that adapts to keep a target fraction of feasible candidates | Vidal et al. (2012) |
 | Granular neighborhoods | Moves are restricted to the *k* nearest neighbors of each customer | Toth and Vigo (2003) |
 | SWAP* | Exchange of two customers between routes, reinserting each at its best position | Vidal (2022) |
-| SENDA3 loop (from 125 nodes) | Remove contiguous strings from neighboring routes and rebuild with greedy insertion with blinks (slack induction by string removals), on the solution in place | Christiaens and Vanden Berghe (2020) |
-| Acceptance in the SENDA3 loop | Simulated annealing; the temperature is expressed in multiples of the mean arc cost of the solution, as in scalable methods for large instances | Kirkpatrick, Gelatt and Vecchi (1983); Accorsi and Vigo (2021) |
+| SENDA3/SENDA5 loop (from 125 nodes) | Remove contiguous strings from neighboring routes and rebuild with greedy insertion with blinks (slack induction by string removals), on the solution in place | Christiaens and Vanden Berghe (2020) |
+| Acceptance in the SENDA3/SENDA5 loop | Simulated annealing; the temperature is expressed in multiples of the mean arc cost of the solution, as in scalable methods for large instances | Kirkpatrick, Gelatt and Vecchi (1983); Accorsi and Vigo (2021) |
 | Parallel portfolio | Two configurations × two seeds on threads, with deterministic reduction | — |
 | Effective capacity | Routing uses a fraction α of the nominal volume, calibrated per constraint variant, relaxed step by step if the load does not fit | — |
 | 3D packing | Extreme-point heuristic with restarts, gravity settling, minimum support, fragility and orientation | Crainic, Perboli and Tadei (2008); Gendreau et al. (2006) |
 | Unloading plan | For each stop, exit door and boxes that must be temporarily set aside | — |
 
 The implementation is original; see [AUTHORSHIP.md](AUTHORSHIP.md).
+
+## Current version: SENDA5 (1.3.0)
+
+The main current evidence is [the corrected-clock SENDA5 audit](SENDA5.md). It reports 0.534%
+mean gap on 98 common X instances with current bounds, one run per instance at a calibrated
+four-second wall budget, and no significant difference against AILS-II. SENDA4 and earlier
+SENDA5 results are historical; 3D performance is not inferred from CVRP results.
 
 ## Published results
 

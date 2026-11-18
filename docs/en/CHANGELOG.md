@@ -1,5 +1,24 @@
 # Changes
 
+## 1.3.0 — November 17, 2026
+
+**SENDA5 with the corrected clock**, engine `lattimex-engine-1.9.0`. Integrates the latest measured
+variant (November 15), with local search on reinserted customers and free-fleet route elimination.
+See [SENDA5: audited results](SENDA5.md). SENDA4 is an experimental predecessor.
+
+- `cvrp` defaults to `senda5`; historical cores remain selectable through `--router`.
+- Adds `native/senda5_core.cpp` and `libsenda5`: six libraries. Fixed parameters, no experimental
+  environment switches. The five historical native sources remain unchanged.
+- Parallel product runs now include initial polishing in their budget; the additional 12% budget
+  discount is removed for SENDA5. The existing `auto` policy for short routes is preserved.
+- API: accepts `senda5`; `senda5`, `senda3` and `senda2` are aliases for the loaded current core.
+  Responses report `senda5` when selected. The Planner workflow and packers are preserved.
+- Audits 19,300 contracted trials and 384 corrected-clock trials, with explicit denominators,
+  November 17 CVRPLIB bounds and reproducibility limits. No superiority over AILS-II at 4 s,
+  or general leadership from 10 s onward, is established.
+- Tests cover size selection, fallback, free/fixed fleets, directed matrices and timing. CI retains
+  SENDA3, full-engine and local-API tests.
+
 ## 1.2.0 — November 12, 2026
 
 A new routing core for large problems. Versions 1.0.0 and 1.1.0 remain available at their `v1.0.0` and

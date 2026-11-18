@@ -79,7 +79,7 @@ class Senda3Test(unittest.TestCase):
         native.configure()
         self.assertEqual(os.environ.get("LATTIMEX_CORE3"), str(native.CORE3_LIB))
         import engine_runtime as er  # noqa: PLC0415
-        self.assertEqual(er.LIB2_PATH, native.CORE3_LIB)
+        self.assertEqual(er.LIB2_PATH, native.CORE5_LIB if native.CORE5_LIB.exists() else native.CORE3_LIB)
 
 
 if __name__ == "__main__":

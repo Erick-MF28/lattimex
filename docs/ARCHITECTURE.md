@@ -1,5 +1,8 @@
 # Arquitectura
 
+La versión 1.3.0 usa el motor `lattimex-engine-1.9.0`, con SENDA5 (`native/senda5_core.cpp`),
+búsqueda local, eliminación de rutas y reloj corregido. [Resultados actuales y límites](SENDA5.md).
+
 *[English version](en/ARCHITECTURE.md)*
 
 LATTIMEX separa la **interfaz** (el Planner, servido por lattimex.com) del **cómputo y los datos**
@@ -19,7 +22,7 @@ lattimex.com/planner  (HTML/JS/CSS)         python -m lattimex serve  → lattim
                                                             │
                                                             ├── map_preparation.py  matriz vial del trabajo
                                                             └── engine_runtime.solve()
-                                                                  ├── ruteo SENDA3 (native/senda3_core.cpp; SENDA 1.0.0 con rutas cortas)
+                                                                  ├── ruteo SENDA5 (native/senda5_core.cpp; SENDA 1.0.0 con rutas cortas)
                                                                   ├── acomodo 3D P3L (native/p3l.cpp) + verificador estricto
                                                                   ├── R3L (sólo fleet_mode=up_to, instancias pequeñas)
                                                                   ├── mediación con flota fija
@@ -49,7 +52,7 @@ respaldo. La versión 1.2.0 trae el motor `lattimex-engine-1.8.0`: el núcleo SE
 (`senda3_core.cpp`), que con menos de 125 nodos corre SENDA2 y desde 125 un bucle de cadenas vecinas,
 medido en [paper/guia_senda3.pdf](../paper/guia_senda3.pdf); `senda2_core.cpp` sigue en el repositorio
 sin cambios. El servidor local importa el motor sin cambios (`lattimex.native.configure()` expone las
-bibliotecas mediante `LATTIMEX_CORE3`, `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` y
+bibliotecas mediante `LATTIMEX_CORE5`, `LATTIMEX_CORE3`, `LATTIMEX_CORE2`, `LATTIMEX_CORE`, `LATTIMEX_P3L` y
 `LATTIMEX_PACK3D`).
 
 ## Mapas

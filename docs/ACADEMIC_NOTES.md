@@ -15,14 +15,21 @@ quiera validar resultados puede reproducirlos en su computadora con las instrucc
 | Infactibilidad penalizada | Se permite explorar soluciones que exceden la capacidad con una penalización que se adapta para mantener una fracción objetivo de candidatos factibles | Vidal et al. (2012) |
 | Vecindarios granulares | Los movimientos se restringen a los *k* vecinos más cercanos de cada cliente | Toth y Vigo (2003) |
 | SWAP* | Intercambio de dos clientes entre rutas, reinsertando cada uno en su mejor posición | Vidal (2022) |
-| Bucle de SENDA3 (desde 125 nodos) | Destruir cadenas contiguas de rutas vecinas y reconstruir con inserción voraz con parpadeo (*slack induction by string removals*), sobre la solución en sitio | Christiaens y Vanden Berghe (2020) |
-| Aceptación en el bucle de SENDA3 | Recocido simulado; la temperatura se expresa en múltiplos del costo medio de un arco de la solución, como en los métodos escalables para instancias grandes | Kirkpatrick, Gelatt y Vecchi (1983); Accorsi y Vigo (2021) |
+| Bucle de SENDA3/SENDA5 (desde 125 nodos) | Destruir cadenas contiguas de rutas vecinas y reconstruir con inserción voraz con parpadeo (*slack induction by string removals*), sobre la solución en sitio | Christiaens y Vanden Berghe (2020) |
+| Aceptación en el bucle de SENDA3/SENDA5 | Recocido simulado; la temperatura se expresa en múltiplos del costo medio de un arco de la solución, como en los métodos escalables para instancias grandes | Kirkpatrick, Gelatt y Vecchi (1983); Accorsi y Vigo (2021) |
 | Portafolio en paralelo | Dos configuraciones × dos semillas en hilos, con reducción determinista | — |
 | Capacidad efectiva | Se rutea con una fracción α del volumen nominal, calibrada por variante de restricciones, y se relaja por pasos si la carga no cabe | — |
 | Empaque 3D | Heurística de puntos extremos con reinicios, asentado por gravedad, soporte mínimo, fragilidad y orientación | Crainic, Perboli y Tadei (2008); Gendreau et al. (2006) |
 | Plan de descarga | Para cada parada, puerta de salida y cajas que deben apartarse temporalmente | — |
 
 La implementación es propia; ver [AUTHORSHIP.md](../AUTHORSHIP.md).
+
+## Versión actual: SENDA5 (1.3.0)
+
+La evidencia principal es [la auditoría de SENDA5 con reloj corregido](SENDA5.md): brecha media
+0.534 % en 98 X comunes con BKS actuales, una corrida por instancia a cuatro segundos de pared
+calibrada, sin diferencia significativa frente a AILS-II. SENDA4 y el SENDA5 anterior son
+antecedentes; los resultados de CVRP no se extienden al acomodo 3D.
 
 ## Resultados publicados
 
