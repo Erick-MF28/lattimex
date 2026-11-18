@@ -7,7 +7,8 @@ license: MIT
 repository-code: "https://github.com/Erick-MF28/lattimex"
 url: "https://lattimex.com"
 authors:
-  - name: "LATTIMEX"
+  - given-names: "Erick Alan"
+    family-names: "Martínez Fuentes"
     city: "Querétaro"
     country: "MX"
 keywords:
